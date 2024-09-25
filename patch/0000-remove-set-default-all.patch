@@ -1,0 +1,56 @@
+--- a/target/linux/mediatek/filogic/target.mk	2024-12-09 21:26:43.498538569 +0800
++++ b/target/linux/mediatek/filogic/target.mk	2024-12-09 21:38:15.264960940 +0800
+@@ -4,7 +4,6 @@ BOARDNAME:=Filogic 8x0 (MT798x)
+ CPU_TYPE:=cortex-a53
+ DEFAULT_PACKAGES += fitblk kmod-phy-aquantia kmod-crypto-hw-safexcel wpad-basic-openssl uboot-envtools
+ KERNELNAME:=Image dtbs
+-DEFAULT_PROFILE:=openwrt_one
+ 
+ define Target/Description
+ 	Build firmware images for MediaTek Filogic ARM based boards.
+--- a/scripts/target-metadata.pl	2024-12-09 21:26:43.277538555 +0800
++++ b/scripts/target-metadata.pl	2024-12-09 21:40:15.830714855 +0800
+@@ -179,7 +179,7 @@ EOF
+ 	print <<EOF;
+ choice
+ 	prompt "Target System"
+-	default TARGET_mediatek
++	default TARGET_ath79
+ 	reset if !DEVEL
+ 	
+ EOF
+@@ -219,14 +219,6 @@ choice
+ EOF
+ 	foreach my $target (@target) {
+ 		my $profile = $target->{profiles}->[0];
+-		foreach my $p (@{$target->{profiles}}) {
+-			last unless $target->{default_profile};
+-			my $name = $p->{id};
+-			$name =~ s/^DEVICE_//;
+-			next unless $name eq $target->{default_profile};
+-			$profile = $p;
+-			last;
+-		}
+ 		$profile or next;
+ 		print <<EOF;
+ 	default TARGET_$target->{conf}_$profile->{id} if TARGET_$target->{conf} && !BUILDBOT
+--- a/scripts/metadata.pm	2024-12-09 21:26:43.276538554 +0800
++++ b/scripts/metadata.pm	2024-12-09 21:41:24.774055073 +0800
+@@ -136,7 +136,6 @@ sub parse_target_metadata($) {
+ 		/^Linux-Kernel-Arch:\s*(.+)\s*$/ and $target->{karch} = $1;
+ 		/^Default-Subtarget:\s*(.+)\s*$/ and $target->{def_subtarget} = $1;
+ 		/^Default-Packages:\s*(.+)\s*$/ and $target->{packages} = [ split(/\s+/, $1) ];
+-		/^Target-Default-Profile:\s*(.+)\s*$/ and $target->{default_profile} = $1;
+ 		/^Target-Profile:\s*(.+)\s*$/ and do {
+ 			$profile = {
+ 				id => $1,
+--- a/include/target.mk	2024-12-09 21:26:43.763538587 +0800
++++ b/include/target.mk	2024-12-09 21:42:07.450089106 +0800
+@@ -378,7 +378,6 @@ define BuildTargets/DumpCurrent
+ 	 echo 'Target-Description:'; \
+ 	 echo "$$$$DESCRIPTION"; \
+ 	 echo '@@'; \
+-	 $(if $(DEFAULT_PROFILE),echo 'Target-Default-Profile: $(DEFAULT_PROFILE)';) \
+ 	 echo 'Default-Packages: $(DEFAULT_PACKAGES) $(call extra_packages,$(DEFAULT_PACKAGES))'; \
+ 	 $(DUMPINFO)
+ 	$(if $(CUR_SUBTARGET),$(SUBMAKE) -r --no-print-directory -C image -s DUMP=1 SUBTARGET=$(CUR_SUBTARGET))
