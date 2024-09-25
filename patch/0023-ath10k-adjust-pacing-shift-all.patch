@@ -1,0 +1,14 @@
+--- /dev/null	2024-10-05 22:57:56.162999993 +0800
++++ ./package/kernel/ath10k-ct/patches/989-ath10k-adjust-pacing-shift.patch	2024-10-06 03:37:51.700541341 +0800
+@@ -0,0 +1,11 @@
++--- a/ath10k-6.9/mac.c	2024-10-06 02:46:45.527055039 +0800
+++++ b/ath10k-6.9/mac.c	2024-10-06 03:37:25.994725414 +0800
++@@ -11334,6 +11334,8 @@ int ath10k_mac_register(struct ath10k *a
++ 	ar->hw->wiphy->max_scan_ssids = WLAN_SCAN_PARAMS_MAX_SSID;
++ 	ar->hw->wiphy->max_scan_ie_len = WLAN_SCAN_PARAMS_MAX_IE_LEN;
++ 
+++	ar->hw->tx_sk_pacing_shift = 6;
+++
++ 	if (test_bit(WMI_SERVICE_NLO, ar->wmi.svc_map)) {
++ 		ar->hw->wiphy->max_sched_scan_ssids = WMI_PNO_MAX_SUPP_NETWORKS;
++ 		ar->hw->wiphy->max_match_sets = WMI_PNO_MAX_SUPP_NETWORKS;
