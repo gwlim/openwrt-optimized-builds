@@ -1,0 +1,1541 @@
+--- /dev/null	2024-12-26 00:11:56.425999992 +0800
++++ b/package/kernel/qca-nss-ecm/patches/0001-treewide-componentize-the-module-even-more.patch	2024-12-29 15:57:27.180885842 +0800
+@@ -0,0 +1,330 @@
++From 09980e54011e2d95a9db2d6134f635bc90e5a7f2 Mon Sep 17 00:00:00 2001
++From: Ansuel Smith <ansuelsmth@gmail.com>
++Date: Wed, 19 May 2021 02:38:53 +0200
++Subject: [PATCH 01/12] treewide: componentize the module even more
++
++Signed-off-by: Ansuel Smith <ansuelsmth@gmail.com>
++---
++ Makefile                         | 56 +++++++++++++++++++++++++-------
++ ecm_db/ecm_db_connection.c       |  8 +++++
++ ecm_db/ecm_db_node.c             |  4 +++
++ ecm_interface.c                  |  8 +++++
++ frontends/ecm_front_end_common.c |  7 ++++
++ 5 files changed, 72 insertions(+), 11 deletions(-)
++
++--- a/Makefile
+++++ b/Makefile
++@@ -4,7 +4,6 @@
++ ifeq ($(ECM_FRONT_END_SFE_ENABLE), y)
++ obj-m += examples/ecm_sfe_l2.o
++ endif
++-obj-m +=examples/ecm_ae_select.o
++ 
++ obj-m += ecm.o
++ ifeq ($(BUILD_ECM_WIFI_PLUGIN),y)
++@@ -24,6 +23,9 @@ endif
++ ifeq ($(EXAMPLES_BUILD_OVS),y)
++ obj-m += examples/ecm_ovs.o
++ endif
+++ifeq ($(EXAMPLES_BUILD_AE),y)
+++obj-m +=examples/ecm_ae_select.o
+++endif
++ 
++ ecm-y := \
++ 	 frontends/cmn/ecm_ae_classifier.o \
++@@ -117,10 +119,18 @@ ccflags-$(ECM_INTERFACE_BOND_ENABLE) +=
++ # Define ECM_INTERFACE_PPPOE_ENABLE=y in order
++ # to enable support for PPPoE acceleration.
++ # #############################################################################
++-ECM_INTERFACE_PPPOE_ENABLE=y
+++ifndef $(ECM_INTERFACE_PPPOE_ENABLE)
+++	ECM_INTERFACE_PPPOE_ENABLE=y
+++endif
++ ccflags-$(ECM_INTERFACE_PPPOE_ENABLE) += -DECM_INTERFACE_PPPOE_ENABLE
++ 
++ # #############################################################################
+++# Define ECM_INTERFACE_L2TPV2_PPTP_ENABLE=y in order
+++# to enable support for l2tpv2 or PPTP detection.
+++# #############################################################################
+++ccflags-$(ECM_INTERFACE_L2TPV2_PPTP_ENABLE) += -DECM_INTERFACE_L2TPV2_PPTP_ENABLE
+++
+++# #############################################################################
++ # Define ECM_INTERFACE_L2TPV2_ENABLE=y in order
++ # to enable support for l2tpv2 acceleration.
++ # #############################################################################
++@@ -153,6 +163,12 @@ endif
++ ccflags-$(ECM_INTERFACE_PPP_ENABLE) += -DECM_INTERFACE_PPP_ENABLE
++ 
++ # #############################################################################
+++# Define ECM_INTERFACE_GRE_ENABLE=y in order
+++# to enable support for GRE detection.
+++# #############################################################################
+++ccflags-$(ECM_INTERFACE_GRE_ENABLE) += -DECM_INTERFACE_GRE_ENABLE
+++
+++# #############################################################################
++ # Define ECM_INTERFACE_GRE_TAP_ENABLE=y in order
++ # to enable support for GRE TAP interface.
++ # #############################################################################
++@@ -235,7 +251,9 @@ ccflags-$(ECM_INTERFACE_OVS_BRIDGE_ENABL
++ # #############################################################################
++ # Define ECM_INTERFACE_VLAN_ENABLE=y in order to enable support for VLAN
++ # #############################################################################
++-ECM_INTERFACE_VLAN_ENABLE=y
+++ifndef $(ECM_INTERFACE_VLAN_ENABLE)
+++	ECM_INTERFACE_VLAN_ENABLE=y
+++endif
++ ccflags-$(ECM_INTERFACE_VLAN_ENABLE) += -DECM_INTERFACE_VLAN_ENABLE
++ 
++ # #############################################################################
++@@ -279,7 +297,9 @@ ccflags-$(ECM_CLASSIFIER_OVS_ENABLE) +=
++ # #############################################################################
++ # Define ECM_CLASSIFIER_MARK_ENABLE=y in order to enable mark classifier.
++ # #############################################################################
++-ECM_CLASSIFIER_MARK_ENABLE=y
+++ifndef $(ECM_CLASSIFIER_MARK_ENABLE)
+++	ECM_CLASSIFIER_MARK_ENABLE=y
+++endif
++ ecm-$(ECM_CLASSIFIER_MARK_ENABLE) += ecm_classifier_mark.o
++ ccflags-$(ECM_CLASSIFIER_MARK_ENABLE) += -DECM_CLASSIFIER_MARK_ENABLE
++ 
++@@ -303,7 +323,9 @@ ccflags-$(ECM_CLASSIFIER_NL_ENABLE) += -
++ # #############################################################################
++ # Define ECM_CLASSIFIER_DSCP_ENABLE=y in order to enable DSCP classifier.
++ # #############################################################################
++-ECM_CLASSIFIER_DSCP_ENABLE=y
+++ifndef $(ECM_CLASSIFIER_DSCP_ENABLE)
+++	ECM_CLASSIFIER_DSCP_ENABLE=y
+++endif
++ ecm-$(ECM_CLASSIFIER_DSCP_ENABLE) += ecm_classifier_dscp.o
++ ccflags-$(ECM_CLASSIFIER_DSCP_ENABLE) += -DECM_CLASSIFIER_DSCP_ENABLE
++ ccflags-$(ECM_CLASSIFIER_DSCP_IGS) += -DECM_CLASSIFIER_DSCP_IGS
++@@ -322,7 +344,9 @@ ccflags-$(ECM_CLASSIFIER_HYFI_ENABLE) +=
++ # the Parental Controls subsystem classifier in ECM. Currently disabled until
++ # customers require it / if they need to integrate their Parental Controls with it.
++ # #############################################################################
++-ECM_CLASSIFIER_PCC_ENABLE=y
+++ifndef $(ECM_CLASSIFIER_PCC_ENABLE)
+++	ECM_CLASSIFIER_PCC_ENABLE=y
+++endif
++ ecm-$(ECM_CLASSIFIER_PCC_ENABLE) += ecm_classifier_pcc.o
++ ccflags-$(ECM_CLASSIFIER_PCC_ENABLE) += -DECM_CLASSIFIER_PCC_ENABLE
++ 
++@@ -371,27 +395,36 @@ ccflags-$(ECM_NON_PORTED_SUPPORT_ENABLE)
++ # #############################################################################
++ # Define ECM_STATE_OUTPUT_ENABLE=y to support XML state output
++ # #############################################################################
++-ECM_STATE_OUTPUT_ENABLE=y
+++ifndef $(ECM_STATE_OUTPUT_ENABLE)
+++	ECM_STATE_OUTPUT_ENABLE=y
+++endif
++ ecm-$(ECM_STATE_OUTPUT_ENABLE) += ecm_state.o
++ ccflags-$(ECM_STATE_OUTPUT_ENABLE) += -DECM_STATE_OUTPUT_ENABLE
++ 
++ # #############################################################################
++ # Define ECM_DB_ADVANCED_STATS_ENABLE to support XML state output
++ # #############################################################################
++-ECM_DB_ADVANCED_STATS_ENABLE=y
+++ifndef $(ECM_DB_ADVANCED_STATS_ENABLE)
+++	ECM_DB_ADVANCED_STATS_ENABLE=y
+++endif
++ ccflags-$(ECM_DB_ADVANCED_STATS_ENABLE) += -DECM_DB_ADVANCED_STATS_ENABLE
++ 
++ # #############################################################################
++ # Define ECM_DB_CONNECTION_CROSS_REFERENCING_ENABLE=y in order to enable
++ # the database to track relationships between objects.
++ # #############################################################################
++-ECM_DB_CONNECTION_CROSS_REFERENCING_ENABLE=y
+++ifndef $(ECM_DB_CONNECTION_CROSS_REFERENCING_ENABLE)
+++	ECM_DB_CONNECTION_CROSS_REFERENCING_ENABLE=y
+++endif
++ ccflags-$(ECM_DB_CONNECTION_CROSS_REFERENCING_ENABLE) += -DECM_DB_XREF_ENABLE
++ 
++ # #############################################################################
++ # Define ECM_TRACKER_DPI_SUPPORT_ENABLE=y in order to enable support for
++ # deep packet inspection and tracking of data with the trackers.
++ # #############################################################################
+++ifndef $(ECM_TRACKER_DPI_SUPPORT_ENABLE)
+++	ECM_TRACKER_DPI_SUPPORT_ENABLE=y
+++endif
++ ccflags-$(ECM_TRACKER_DPI_SUPPORT_ENABLE) += -DECM_TRACKER_DPI_SUPPORT_ENABLE
++ 
++ # #############################################################################
++@@ -399,14 +432,18 @@ ccflags-$(ECM_TRACKER_DPI_SUPPORT_ENABLE
++ # support for the database keeping lists of connections that are assigned
++ # on a per TYPE of classifier basis.
++ # #############################################################################
++-ECM_DB_CLASSIFIER_TYPE_ASSIGNMENTS_TRACK_ENABLE=y
+++ifndef $(ECM_DB_CLASSIFIER_TYPE_ASSIGNMENTS_TRACK_ENABLE)
+++	ECM_DB_CLASSIFIER_TYPE_ASSIGNMENTS_TRACK_ENABLE=y
+++endif
++ ccflags-$(ECM_DB_CLASSIFIER_TYPE_ASSIGNMENTS_TRACK_ENABLE) += -DECM_DB_CTA_TRACK_ENABLE
++ 
++ # #############################################################################
++ # Define ECM_BAND_STEERING_ENABLE=y in order to enable
++ # band steering feature.
++ # #############################################################################
++-ECM_BAND_STEERING_ENABLE=y
+++ifndef $(ECM_BAND_STEERING_ENABLE)
+++	ECM_BAND_STEERING_ENABLE=y
+++endif
++ ccflags-$(ECM_BAND_STEERING_ENABLE) += -DECM_BAND_STEERING_ENABLE
++ 
++ # #############################################################################
++--- a/ecm_db/ecm_db_connection.c
+++++ b/ecm_db/ecm_db_connection.c
++@@ -454,7 +454,9 @@ EXPORT_SYMBOL(ecm_db_connection_make_def
++  */
++ void ecm_db_connection_data_totals_update(struct ecm_db_connection_instance *ci, bool is_from, uint64_t size, uint64_t packets)
++ {
+++#ifdef ECM_DB_ADVANCED_STATS_ENABLE
++ 	int32_t i;
+++#endif
++ 
++ 	DEBUG_CHECK_MAGIC(ci, ECM_DB_CONNECTION_INSTANCE_MAGIC, "%px: magic failed\n", ci);
++ 
++@@ -1549,6 +1551,7 @@ void ecm_db_connection_defunct_all(void)
++ }
++ EXPORT_SYMBOL(ecm_db_connection_defunct_all);
++ 
+++#ifdef ECM_INTERFACE_OVS_BRIDGE_ENABLE
++ /*
++  * ecm_db_connection_defunct_by_classifier()
++  *	Make defunct based on masked fields
++@@ -1715,6 +1718,7 @@ next_ci:
++ 				ECM_IP_ADDR_TO_OCTAL(dest_addr_mask), dest_port_mask, proto_mask, cnt);
++ 	}
++ }
+++#endif
++ 
++ /*
++  * ecm_db_connection_defunct_by_port()
++@@ -2004,6 +2008,7 @@ struct ecm_db_node_instance *ecm_db_conn
++ }
++ EXPORT_SYMBOL(ecm_db_connection_node_get_and_ref);
++ 
+++#ifdef ECM_DB_XREF_ENABLE
++ /*
++  * ecm_db_connection_mapping_get_and_ref_next()
++  *	Return reference to next connection in the mapping chain in the specified direction.
++@@ -2045,6 +2050,7 @@ struct ecm_db_connection_instance *ecm_d
++ 	return nci;
++ }
++ EXPORT_SYMBOL(ecm_db_connection_iface_get_and_ref_next);
+++#endif
++ 
++ /*
++  * ecm_db_connection_mapping_get_and_ref()
++--- a/ecm_db/ecm_db_node.c
+++++ b/ecm_db/ecm_db_node.c
++@@ -495,9 +495,11 @@ EXPORT_SYMBOL(ecm_db_node_iface_get_and_
++ void ecm_db_node_add(struct ecm_db_node_instance *ni, struct ecm_db_iface_instance *ii, uint8_t *address,
++ 					ecm_db_node_final_callback_t final, void *arg)
++ {
+++#ifdef ECM_DB_XREF_ENABLE
++ #if (DEBUG_LEVEL >= 1)
++ 	int dir;
++ #endif
+++#endif
++ 	ecm_db_node_hash_t hash_index;
++ 	struct ecm_db_listener_instance *li;
++ 
++--- a/ecm_interface.c
+++++ b/ecm_interface.c
++@@ -1671,6 +1671,7 @@ struct neighbour *ecm_interface_ipv6_nei
++  */
++ bool ecm_interface_is_pptp(struct sk_buff *skb, const struct net_device *out)
++ {
+++#ifdef ECM_INTERFACE_PPTP_ENABLE
++ 	struct net_device *in;
++ 
++ 	/*
++@@ -1695,6 +1696,7 @@ bool ecm_interface_is_pptp(struct sk_buf
++ 	}
++ 
++ 	dev_put(in);
+++#endif
++ 	return false;
++ }
++ 
++@@ -1707,6 +1709,7 @@ bool ecm_interface_is_pptp(struct sk_buf
++  */
++ bool ecm_interface_is_l2tp_packet_by_version(struct sk_buff *skb, const struct net_device *out, int ver)
++ {
+++#ifdef ECM_INTERFACE_L2TPV2_PPTP_ENABLE
++ 	uint32_t flag = 0;
++ 	struct net_device *in;
++ 
++@@ -1739,6 +1742,7 @@ bool ecm_interface_is_l2tp_packet_by_ver
++ 	}
++ 
++ 	dev_put(in);
+++#endif
++ 	return false;
++ }
++ 
++@@ -1751,6 +1755,7 @@ bool ecm_interface_is_l2tp_packet_by_ver
++  */
++ bool ecm_interface_is_l2tp_pptp(struct sk_buff *skb, const struct net_device *out)
++ {
+++#ifdef ECM_INTERFACE_L2TPV2_PPTP_ENABLE
++ 	struct net_device *in;
++ 
++ 	/*
++@@ -1773,6 +1778,7 @@ bool ecm_interface_is_l2tp_pptp(struct s
++ 	}
++ 
++ 	dev_put(in);
+++#endif
++ 	return false;
++ }
++ 
++@@ -7471,6 +7477,7 @@ static void ecm_interface_regenerate_con
++ 		return;
++ 	}
++ 
+++#ifdef ECM_DB_XREF_ENABLE
++ 	for (dir = 0; dir < ECM_DB_OBJ_DIR_MAX; dir++) {
++ 		/*
++ 		 * Re-generate all connections associated with this interface
++@@ -7486,6 +7493,7 @@ static void ecm_interface_regenerate_con
++ 			ci[dir] = cin;
++ 		}
++ 	}
+++#endif
++ 
++ #ifdef ECM_MULTICAST_ENABLE
++ 	/*
++--- a/frontends/ecm_front_end_common.c
+++++ b/frontends/ecm_front_end_common.c
++@@ -590,6 +590,7 @@ bool ecm_front_end_gre_proto_is_accel_al
++ 							     struct nf_conntrack_tuple *reply_tuple,
++ 							     int ip_version, uint16_t offset)
++ {
+++#ifdef ECM_INTERFACE_GRE_ENABLE
++ 	struct net_device *dev;
++ 	struct gre_base_hdr *greh;
++ 
++@@ -601,10 +602,12 @@ bool ecm_front_end_gre_proto_is_accel_al
++ 		/*
++ 		 * Case 1: PPTP locally terminated
++ 		 */
+++#ifdef ECM_INTERFACE_PPTP_ENABLE
++ 		if (ecm_interface_is_pptp(skb, outdev)) {
++ 			DEBUG_TRACE("%px: PPTP GRE locally terminated - allow acceleration\n", skb);
++ 			return true;
++ 		}
+++#endif
++ 
++ 		/*
++ 		 * Case 2: PPTP pass through
++@@ -732,6 +735,10 @@ bool ecm_front_end_gre_proto_is_accel_al
++ 	 */
++ 	DEBUG_TRACE("%px: GRE IPv%d pass through non NAT - allow acceleration\n", skb, ip_version);
++ 	return true;
+++#else
+++	DEBUG_TRACE("%px: GRE%d feature is disabled - do not allow acceleration\n", skb, ip_version);
+++	return false;
+++#endif
++ }
++ 
++ #ifdef ECM_CLASSIFIER_DSCP_ENABLE
+--- /dev/null	2024-12-26 00:11:56.425999992 +0800
++++ b/package/kernel/qca-nss-ecm/patches/0004-qca-nss-ecm-resolve-the-cpu-high-load-regarding-ecm.patch	2024-12-29 15:57:26.439885771 +0800
+@@ -0,0 +1,55 @@
++From 65aa71f33891bcf0b75995219e31abaf674c6199 Mon Sep 17 00:00:00 2001
++From: Dirk Buchwalder <buchwalder@posteo.de>
++Date: Sun, 27 Jun 2021 16:52:39 +0200
++Subject: [PATCH 05/12] qca-nss-ecm: resolve the cpu high load regarding ecm
++
++If using ECM, cpu load goes up (around 1.0) and stucks there.
++This is due to using uninterruptible sleep function,
++the patch changes this to interruptible sleep function.
++
++Signed-off-by: Dirk Buchwalder buchwalder@posteo.de
++---
++ frontends/nss/ecm_nss_ipv4.c | 4 ++--
++ frontends/nss/ecm_nss_ipv6.c | 4 ++--
++ 2 files changed, 4 insertions(+), 4 deletions(-)
++
++--- a/frontends/nss/ecm_nss_ipv4.c
+++++ b/frontends/nss/ecm_nss_ipv4.c
++@@ -700,7 +700,7 @@ static void ecm_nss_ipv4_stats_sync_req_
++ 	}
++ 	spin_unlock_bh(&ecm_nss_ipv4_lock);
++ 
++-	usleep_range(ECM_NSS_IPV4_STATS_SYNC_UDELAY - 100, ECM_NSS_IPV4_STATS_SYNC_UDELAY);
+++	msleep_interruptible(ECM_NSS_IPV4_STATS_SYNC_UDELAY / 1000);
++ 
++ 	/*
++ 	 * If index is 0, we are starting a new round, but if we still have time remain
++@@ -714,7 +714,7 @@ static void ecm_nss_ipv4_stats_sync_req_
++ 		}
++ 
++ 		if (time_after(ecm_nss_ipv4_next_req_time, current_jiffies)) {
++-			msleep(jiffies_to_msecs(ecm_nss_ipv4_next_req_time - current_jiffies));
+++			msleep_interruptible(jiffies_to_msecs(ecm_nss_ipv4_next_req_time - current_jiffies));
++ 		}
++ 		ecm_nss_ipv4_roll_check_jiffies = jiffies;
++ 		ecm_nss_ipv4_next_req_time = ecm_nss_ipv4_roll_check_jiffies + ECM_NSS_IPV4_STATS_SYNC_PERIOD;
++--- a/frontends/nss/ecm_nss_ipv6.c
+++++ b/frontends/nss/ecm_nss_ipv6.c
++@@ -676,7 +676,7 @@ static void ecm_nss_ipv6_stats_sync_req_
++ 	}
++ 	spin_unlock_bh(&ecm_nss_ipv6_lock);
++ 
++-	usleep_range(ECM_NSS_IPV6_STATS_SYNC_UDELAY - 100, ECM_NSS_IPV6_STATS_SYNC_UDELAY);
+++	msleep_interruptible(ECM_NSS_IPV6_STATS_SYNC_UDELAY / 1000);
++ 
++ 	/*
++ 	 * If index is 0, we are starting a new round, but if we still have time remain
++@@ -690,7 +690,7 @@ static void ecm_nss_ipv6_stats_sync_req_
++ 		}
++ 
++ 		if (time_after(ecm_nss_ipv6_next_req_time, current_jiffies)) {
++-			msleep(jiffies_to_msecs(ecm_nss_ipv6_next_req_time - current_jiffies));
+++			msleep_interruptible(jiffies_to_msecs(ecm_nss_ipv6_next_req_time - current_jiffies));
++ 		}
++ 		ecm_nss_ipv6_roll_check_jiffies = jiffies;
++ 		ecm_nss_ipv6_next_req_time = ecm_nss_ipv6_roll_check_jiffies + ECM_NSS_IPV6_STATS_SYNC_PERIOD;
+--- /dev/null	2024-12-26 00:11:56.425999992 +0800
++++ b/package/kernel/qca-nss-ecm/patches/0005-qca-nss-ecm-resolve-the-cpu-high-load-regarding-ecm.patch	2024-12-29 15:57:27.410885864 +0800
+@@ -0,0 +1,40 @@
++--- a/frontends/sfe/ecm_sfe_ipv4.c
+++++ b/frontends/sfe/ecm_sfe_ipv4.c
++@@ -843,7 +843,7 @@ static void ecm_sfe_ipv4_stats_sync_req_
++ 	}
++ 	spin_unlock_bh(&ecm_sfe_ipv4_lock);
++ 
++-	usleep_range(ECM_SFE_IPV4_STATS_SYNC_UDELAY - 100, ECM_SFE_IPV4_STATS_SYNC_UDELAY);
+++	msleep_interruptible(ECM_SFE_IPV4_STATS_SYNC_UDELAY / 1000);
++ 
++ 	/*
++ 	 * If index is 0, we are starting a new round, but if we still have time remain
++@@ -857,7 +857,7 @@ static void ecm_sfe_ipv4_stats_sync_req_
++ 		}
++ 
++ 		if (time_after(ecm_sfe_ipv4_next_req_time, current_jiffies)) {
++-			msleep(jiffies_to_msecs(ecm_sfe_ipv4_next_req_time - current_jiffies));
+++			msleep_interruptible(jiffies_to_msecs(ecm_sfe_ipv4_next_req_time - current_jiffies));
++ 		}
++ 		ecm_sfe_ipv4_roll_check_jiffies = jiffies;
++ 		ecm_sfe_ipv4_next_req_time = ecm_sfe_ipv4_roll_check_jiffies + ECM_SFE_IPV4_STATS_SYNC_PERIOD;
++--- a/frontends/sfe/ecm_sfe_ipv6.c
+++++ b/frontends/sfe/ecm_sfe_ipv6.c
++@@ -839,7 +839,7 @@ static void ecm_sfe_ipv6_stats_sync_req_
++ 	}
++ 	spin_unlock_bh(&ecm_sfe_ipv6_lock);
++ 
++-	usleep_range(ECM_SFE_IPV6_STATS_SYNC_UDELAY - 100, ECM_SFE_IPV6_STATS_SYNC_UDELAY);
+++	msleep_interruptible(ECM_SFE_IPV6_STATS_SYNC_UDELAY / 1000);
++ 
++ 	/*
++ 	 * If index is 0, we are starting a new round, but if we still have time remain
++@@ -853,7 +853,7 @@ static void ecm_sfe_ipv6_stats_sync_req_
++ 		}
++ 
++ 		if (time_after(ecm_sfe_ipv6_next_req_time, current_jiffies)) {
++-			msleep(jiffies_to_msecs(ecm_sfe_ipv6_next_req_time - current_jiffies));
+++			msleep_interruptible(jiffies_to_msecs(ecm_sfe_ipv6_next_req_time - current_jiffies));
++ 		}
++ 		ecm_sfe_ipv6_roll_check_jiffies = jiffies;
++ 		ecm_sfe_ipv6_next_req_time = ecm_sfe_ipv6_roll_check_jiffies + ECM_SFE_IPV6_STATS_SYNC_PERIOD;
+--- /dev/null	2024-12-26 00:11:56.425999992 +0800
++++ b/package/kernel/qca-nss-ecm/patches/0008-ecm_tracker_datagram-drop-static-for-EXPORT_SYMBOL.patch	2024-12-29 15:57:26.441885771 +0800
+@@ -0,0 +1,50 @@
++From 9827d8597545ecfee17eba7b08d48dbcdf55c614 Mon Sep 17 00:00:00 2001
++From: Ansuel Smith <ansuelsmth@gmail.com>
++Date: Sun, 8 May 2022 18:39:39 +0200
++Subject: [PATCH 09/12] ecm_tracker_datagram: drop static for EXPORT_SYMBOL
++
++EXPORT_SYMBOL should NOT be static
++
++Signed-off-by: Ansuel Smith <ansuelsmth@gmail.com>
++---
++ ecm_tracker_datagram.c | 8 ++++----
++ 1 file changed, 4 insertions(+), 4 deletions(-)
++
++--- a/ecm_tracker_datagram.c
+++++ b/ecm_tracker_datagram.c
++@@ -203,7 +203,7 @@ static void ecm_tracker_datagram_datagra
++  * ecm_tracker_datagram_discard_all()
++  *	Discard all tracked data
++  */
++-static void ecm_tracker_datagram_discard_all(struct ecm_tracker_datagram_internal_instance *dtii)
+++void ecm_tracker_datagram_discard_all(struct ecm_tracker_datagram_internal_instance *dtii)
++ {
++ 	int32_t src_count;
++ 	int32_t dest_count;
++@@ -364,7 +364,7 @@ static void ecm_tracker_datagram_datagra
++  * ecm_tracker_datagram_datagram_size_get()
++  *	Return size in bytes of datagram at index i that was sent to the target
++  */
++-static int32_t ecm_tracker_datagram_datagram_size_get(struct ecm_tracker_datagram_instance *uti, ecm_tracker_sender_type_t sender, int32_t i)
+++int32_t ecm_tracker_datagram_datagram_size_get(struct ecm_tracker_datagram_instance *uti, ecm_tracker_sender_type_t sender, int32_t i)
++ {
++ 	struct ecm_tracker_datagram_internal_instance *dtii = (struct ecm_tracker_datagram_internal_instance *)uti;
++ 
++@@ -412,7 +412,7 @@ static int32_t ecm_tracker_datagram_data
++  * ecm_tracker_datagram_datagram_read()
++  *	Read size bytes from datagram at index i into the buffer
++  */
++-static int ecm_tracker_datagram_datagram_read(struct ecm_tracker_datagram_instance *uti, ecm_tracker_sender_type_t sender, int32_t i, int32_t offset, int32_t size, void *buffer)
+++int ecm_tracker_datagram_datagram_read(struct ecm_tracker_datagram_instance *uti, ecm_tracker_sender_type_t sender, int32_t i, int32_t offset, int32_t size, void *buffer)
++ {
++ 	struct ecm_tracker_datagram_internal_instance *dtii = (struct ecm_tracker_datagram_internal_instance *)uti;
++ 	int res;
++@@ -466,7 +466,7 @@ static int ecm_tracker_datagram_datagram
++  * ecm_tracker_datagram_datagram_add()
++  *	Append the datagram onto the tracker queue for the given target
++  */
++-static bool ecm_tracker_datagram_datagram_add(struct ecm_tracker_datagram_instance *uti, ecm_tracker_sender_type_t sender, struct sk_buff *skb)
+++bool ecm_tracker_datagram_datagram_add(struct ecm_tracker_datagram_instance *uti, ecm_tracker_sender_type_t sender, struct sk_buff *skb)
++ {
++ 	struct ecm_tracker_datagram_internal_instance *dtii = (struct ecm_tracker_datagram_internal_instance *)uti;
++ 	struct sk_buff *skbc;
+--- /dev/null	2024-12-26 00:11:56.425999992 +0800
++++ b/package/kernel/qca-nss-ecm/patches/0009-frontends-drop-udp_get_timeouts-and-use-standard-ups.patch	2024-12-29 15:57:26.443885772 +0800
+@@ -0,0 +1,63 @@
++From ef638a84405c9f6556a9d7c257ccbba74efd228e Mon Sep 17 00:00:00 2001
++From: Ansuel Smith <ansuelsmth@gmail.com>
++Date: Sat, 14 May 2022 20:15:10 +0200
++Subject: [PATCH 10/12] frontends: drop udp_get_timeouts and use standard
++ upstream api
++
++Drop udp_get_timeouts and use nf_udp_pernet and ->timeouts
++instead or relying on a downstream api not present upstream.
++---
++ frontends/nss/ecm_nss_ipv4.c | 3 ++-
++ frontends/nss/ecm_nss_ipv6.c | 3 ++-
++ frontends/sfe/ecm_sfe_ipv4.c | 3 ++-
++ frontends/sfe/ecm_sfe_ipv6.c | 3 ++-
++ 4 files changed, 8 insertions(+), 4 deletions(-)
++
++--- a/frontends/nss/ecm_nss_ipv4.c
+++++ b/frontends/nss/ecm_nss_ipv4.c
++@@ -610,7 +610,8 @@ sync_conntrack:
++ #else
++ 				timeouts = nf_ct_timeout_lookup(ct);
++ 				if (!timeouts) {
++-					timeouts = udp_get_timeouts(nf_ct_net(ct));
+++					struct nf_udp_net *un = nf_udp_pernet(nf_ct_net(ct));
+++					timeouts = un->timeouts;
++ 				}
++ 
++ 				spin_lock_bh(&ct->lock);
++--- a/frontends/nss/ecm_nss_ipv6.c
+++++ b/frontends/nss/ecm_nss_ipv6.c
++@@ -587,7 +587,8 @@ sync_conntrack:
++ #else
++ 				timeouts = nf_ct_timeout_lookup(ct);
++ 				if (!timeouts) {
++-					timeouts = udp_get_timeouts(nf_ct_net(ct));
+++					struct nf_udp_net *un = nf_udp_pernet(nf_ct_net(ct));
+++					timeouts = un->timeouts;
++ 				}
++ 
++ 				spin_lock_bh(&ct->lock);
++--- a/frontends/sfe/ecm_sfe_ipv4.c
+++++ b/frontends/sfe/ecm_sfe_ipv4.c
++@@ -576,7 +576,8 @@ sync_conntrack:
++ #else
++ 				timeouts = nf_ct_timeout_lookup(ct);
++ 				if (!timeouts) {
++-					timeouts = udp_get_timeouts(nf_ct_net(ct));
+++					struct nf_udp_net *un = nf_udp_pernet(nf_ct_net(ct));
+++					timeouts = un->timeouts;
++ 				}
++ 
++ 				spin_lock_bh(&ct->lock);
++--- a/frontends/sfe/ecm_sfe_ipv6.c
+++++ b/frontends/sfe/ecm_sfe_ipv6.c
++@@ -569,7 +569,8 @@ sync_conntrack:
++ #else
++ 				timeouts = nf_ct_timeout_lookup(ct);
++ 				if (!timeouts) {
++-					timeouts = udp_get_timeouts(nf_ct_net(ct));
+++					struct nf_udp_net *un = nf_udp_pernet(nf_ct_net(ct));
+++					timeouts = un->timeouts;
++ 				}
++ 
++ 				spin_lock_bh(&ct->lock);
+--- /dev/null	2024-12-26 00:11:56.425999992 +0800
++++ b/package/kernel/qca-nss-ecm/patches/0010-ecm_interface-fix-ppp-generic-function-calls-for-5.15.patch	2024-12-29 15:57:27.762885896 +0800
+@@ -0,0 +1,20 @@
++--- a/ecm_interface.c
+++++ b/ecm_interface.c
++@@ -3879,7 +3879,7 @@ identifier_update:
++ 		if (skb && (skb->skb_iif == dev->ifindex)) {
++ 			struct pppol2tp_common_addr info;
++ 
++-			if (__ppp_is_multilink(dev) > 0) {
+++			if (ppp_is_multilink(dev) > 0) {
++ 				DEBUG_TRACE("%px: Net device: %px is MULTILINK PPP - Unknown to the ECM\n", feci, dev);
++ 				type_info.unknown.os_specific_ident = dev_interface_num;
++ 
++@@ -3889,7 +3889,7 @@ identifier_update:
++ 				ii = ecm_interface_unknown_interface_establish(&type_info.unknown, dev_name, dev_interface_num, ae_interface_num, dev_mtu);
++ 				return ii;
++ 			}
++-			channel_count = __ppp_hold_channels(dev, ppp_chan, 1);
+++			channel_count = ppp_hold_channels(dev, ppp_chan, 1);
++ 			if (channel_count != 1) {
++ 				DEBUG_TRACE("%px: Net device: %px PPP has %d channels - ECM cannot handle this (interface becomes Unknown type)\n",
++ 					    feci, dev, channel_count);
+--- /dev/null	2024-12-26 00:11:56.425999992 +0800
++++ b/package/kernel/qca-nss-ecm/patches/0011-ecm_classifier-move-defs.patch	2024-12-29 15:57:26.445885772 +0800
+@@ -0,0 +1,22 @@
++--- a/ecm_classifier_mscs.c
+++++ b/ecm_classifier_mscs.c
++@@ -429,7 +429,6 @@ static void ecm_classifier_mscs_process(
++ 	struct ecm_db_connection_instance *ci = NULL;
++ 	struct ecm_front_end_connection_instance *feci;
++ 	ecm_front_end_acceleration_mode_t accel_mode;
++-	int protocol;
++ 	uint32_t became_relevant = 0;
++ 	ecm_classifier_mscs_process_callback_t cb = NULL;
++ 	bool scs_result = false;
++@@ -441,10 +440,10 @@ static void ecm_classifier_mscs_process(
++ 	struct net_device *src_dev = NULL;
++ 	struct net_device *dest_dev = NULL;
++ 	uint64_t slow_pkts;
+++	struct ecm_classifier_mscs_get_priority_info get_priority_info = {0};
++ #ifdef ECM_CLASSIFIER_MSCS_SCS_ENABLE
++ 	struct sp_rule_input_params flow_input_params;
++ 	struct sp_rule_output_params flow_output_params;
++-	struct ecm_classifier_mscs_get_priority_info get_priority_info = {0};
++ 	struct ecm_classifier_mscs_rule_match_info rule_match_info = {0};
++ 	ecm_classifier_mscs_scs_priority_callback_t scs_cb = NULL;
++ #endif
+--- /dev/null	2024-12-26 00:11:56.425999992 +0800
++++ b/package/kernel/qca-nss-ecm/patches/0012-ecm_add-check-for-pppoe.patch	2024-12-29 15:57:26.447885772 +0800
+@@ -0,0 +1,42 @@
++--- a/frontends/include/ecm_front_end_common.h
+++++ b/frontends/include/ecm_front_end_common.h
++@@ -339,15 +339,19 @@ static inline bool ecm_front_end_ppppoe_
++ 	fe_type = ecm_front_end_type_get();
++ 	switch (fe_type) {
++ #ifdef ECM_FRONT_END_NSS_ENABLE
+++#ifdef ECM_INTERFACE_PPPOE_ENABLE
++ 	case ECM_FRONT_END_TYPE_NSS:
++ 		ret = (nss_pppoe_get_br_accel_mode() == NSS_PPPOE_BR_ACCEL_MODE_DIS);
++ 		break;
++ #endif
+++#endif
++ #ifdef ECM_FRONT_END_SFE_ENABLE
+++#ifdef ECM_INTERFACE_PPPOE_ENABLE
++ 	case ECM_FRONT_END_TYPE_SFE:
++ 		ret = (sfe_pppoe_get_br_accel_mode() == SFE_PPPOE_BR_ACCEL_MODE_DISABLED);
++ 		break;
++ #endif
+++#endif
++ 	default:
++ 		DEBUG_TRACE("front end type: %d\n", fe_type);
++ 		break;
++@@ -369,15 +373,19 @@ static inline bool ecm_front_end_ppppoe_
++ 	fe_type = ecm_front_end_type_get();
++ 	switch (fe_type) {
++ #ifdef ECM_FRONT_END_NSS_ENABLE
+++#ifdef ECM_INTERFACE_PPPOE_ENABLE
++ 	case ECM_FRONT_END_TYPE_NSS:
++ 		ret = (nss_pppoe_get_br_accel_mode() == NSS_PPPOE_BR_ACCEL_MODE_EN_3T);
++ 		break;
++ #endif
+++#endif
++ #ifdef ECM_FRONT_END_SFE_ENABLE
+++#ifdef ECM_INTERFACE_PPPOE_ENABLE
++ 	case ECM_FRONT_END_TYPE_SFE:
++ 		ret = (sfe_pppoe_get_br_accel_mode() == SFE_PPPOE_BR_ACCEL_MODE_EN_3T);
++ 		break;
++ #endif
+++#endif
++ 	default:
++ 		DEBUG_WARN("front end type: %d is not supported\n", fe_type);
++ 		break;
+--- /dev/null	2024-12-26 00:11:56.425999992 +0800
++++ b/package/kernel/qca-nss-ecm/patches/0013-treewide-export-ipv4-and-ipv6-symbols.patch	2024-12-29 15:57:28.129885930 +0800
+@@ -0,0 +1,99 @@
++--- a/frontends/nss/ecm_nss_common.c
+++++ b/frontends/nss/ecm_nss_common.c
++@@ -67,6 +67,7 @@ bool ecm_nss_ipv6_is_conn_limit_reached(
++ 
++ 	return false;
++ }
+++EXPORT_SYMBOL(ecm_nss_ipv6_is_conn_limit_reached);
++ #endif
++ 
++ /*
++@@ -116,3 +117,4 @@ bool ecm_nss_ipv4_is_conn_limit_reached(
++ 
++ 	return false;
++ }
+++EXPORT_SYMBOL(ecm_nss_ipv4_is_conn_limit_reached);
++--- a/frontends/nss/ecm_nss_non_ported_ipv4.c
+++++ b/frontends/nss/ecm_nss_non_ported_ipv4.c
++@@ -1918,6 +1918,7 @@ struct ecm_front_end_connection_instance
++ 
++ 	return feci;
++ }
+++EXPORT_SYMBOL(ecm_nss_non_ported_ipv4_connection_instance_alloc);
++ 
++ /*
++  * ecm_nss_non_ported_ipv4_debugfs_init()
++--- a/frontends/nss/ecm_nss_non_ported_ipv4.h
+++++ b/frontends/nss/ecm_nss_non_ported_ipv4.h
++@@ -19,7 +19,7 @@
++ 
++ extern bool ecm_nss_non_ported_ipv4_debugfs_init(struct dentry *dentry);
++ 
++-extern struct ecm_front_end_connection_instance *ecm_nss_non_ported_ipv4_connection_instance_alloc(
+++struct ecm_front_end_connection_instance *ecm_nss_non_ported_ipv4_connection_instance_alloc(
++ 								uint32_t accel_flags,
++ 								int protocol,
++ 								struct ecm_db_connection_instance **nci);
++--- a/frontends/nss/ecm_nss_non_ported_ipv6.c
+++++ b/frontends/nss/ecm_nss_non_ported_ipv6.c
++@@ -1728,6 +1728,7 @@ struct ecm_front_end_connection_instance
++ 
++ 	return feci;
++ }
+++EXPORT_SYMBOL(ecm_nss_non_ported_ipv6_connection_instance_alloc);
++ 
++ /*
++  * ecm_nss_non_ported_ipv6_debugfs_init()
++--- a/frontends/nss/ecm_nss_non_ported_ipv6.h
+++++ b/frontends/nss/ecm_nss_non_ported_ipv6.h
++@@ -19,7 +19,7 @@
++ 
++ extern bool ecm_nss_non_ported_ipv6_debugfs_init(struct dentry *dentry);
++ 
++-extern struct ecm_front_end_connection_instance *ecm_nss_non_ported_ipv6_connection_instance_alloc(
+++struct ecm_front_end_connection_instance *ecm_nss_non_ported_ipv6_connection_instance_alloc(
++ 								uint32_t accel_flags,
++ 								int protocol,
++ 								struct ecm_db_connection_instance **nci);
++--- a/frontends/nss/ecm_nss_ported_ipv4.c
+++++ b/frontends/nss/ecm_nss_ported_ipv4.c
++@@ -1956,6 +1956,7 @@ struct ecm_front_end_connection_instance
++ 
++ 	return feci;
++ }
+++EXPORT_SYMBOL(ecm_nss_ported_ipv4_connection_instance_alloc);
++ 
++ /*
++  * ecm_nss_ported_ipv4_debugfs_init()
++--- a/frontends/nss/ecm_nss_ported_ipv4.h
+++++ b/frontends/nss/ecm_nss_ported_ipv4.h
++@@ -19,7 +19,7 @@
++ 
++ extern bool ecm_nss_ported_ipv4_debugfs_init(struct dentry *dentry);
++ 
++-extern struct ecm_front_end_connection_instance *ecm_nss_ported_ipv4_connection_instance_alloc(
+++struct ecm_front_end_connection_instance *ecm_nss_ported_ipv4_connection_instance_alloc(
++ 								uint32_t accel_flags,
++ 								int protocol,
++ 								struct ecm_db_connection_instance **nci);
++--- a/frontends/nss/ecm_nss_ported_ipv6.c
+++++ b/frontends/nss/ecm_nss_ported_ipv6.c
++@@ -1862,6 +1862,7 @@ struct ecm_front_end_connection_instance
++ 
++ 	return feci;
++ }
+++EXPORT_SYMBOL(ecm_nss_ported_ipv6_connection_instance_alloc);
++ 
++ /*
++  * ecm_nss_ported_ipv6_debugfs_init()
++--- a/frontends/nss/ecm_nss_ported_ipv6.h
+++++ b/frontends/nss/ecm_nss_ported_ipv6.h
++@@ -19,7 +19,7 @@
++ 
++ extern bool ecm_nss_ported_ipv6_debugfs_init(struct dentry *dentry);
++ 
++-extern struct ecm_front_end_connection_instance *ecm_nss_ported_ipv6_connection_instance_alloc(
+++struct ecm_front_end_connection_instance *ecm_nss_ported_ipv6_connection_instance_alloc(
++ 								uint32_t accel_flags,
++ 								int protocol,
++ 								struct ecm_db_connection_instance **nci);
+--- /dev/null	2024-12-26 00:11:56.425999992 +0800
++++ b/package/kernel/qca-nss-ecm/patches/0015-ecm-add-support-for-kernel-6.6.patch	2024-12-29 15:57:26.449885772 +0800
+@@ -0,0 +1,14 @@
++--- a/frontends/nss/ecm_nss_common.h
+++++ b/frontends/nss/ecm_nss_common.h
++@@ -277,8 +277,10 @@ static inline bool ecm_nss_common_igs_ac
++ 		 */
++ #if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0))
++ 		if (likely(!(to_dev->ingress_cl_list))) {
++-#else
+++#elif (LINUX_VERSION_CODE < KERNEL_VERSION(6, 6, 0))
++ 		if (likely(!(to_dev->miniq_ingress))) {
+++#else
+++		if (likely(!(to_dev->tcx_ingress))) {
++ #endif
++ 			dev_put(to_dev);
++ 			continue;
+--- /dev/null	2024-12-26 00:11:56.425999992 +0800
++++ b/package/kernel/qca-nss-ecm/patches/0016-ecm-conditionally-check-mlo-device.patch	2024-12-29 15:57:28.359885952 +0800
+@@ -0,0 +1,14 @@
++--- a/ecm_interface.c
+++++ b/ecm_interface.c
++@@ -4302,7 +4302,11 @@ static uint32_t ecm_interface_multicast_
++ 				 * For MLO bond netdevice, destination for multicast is bond netdevice itself
++ 				 * Therefore, slave lookup is not needed.
++ 				 */
+++#ifdef ECM_FRONT_END_SFE_ENABLE
++ 				if (ecm_front_end_is_lag_master(dest_dev) && !bond_is_mlo_device(dest_dev)) {
+++#else
+++				if (ecm_front_end_is_lag_master(dest_dev)) {
+++#endif
++ 					/*
++ 					 * Link aggregation
++ 					 * Figure out which slave device of the link aggregation will be used to reach the destination.
+--- /dev/null	2024-12-26 00:11:56.425999992 +0800
++++ b/package/kernel/qca-nss-ecm/patches/0017-ecm-interface-fix-fortify_memcpy_chk.patch	2024-12-29 15:57:28.470885961 +0800
+@@ -0,0 +1,53 @@
++--- a/ecm_interface.c
+++++ b/ecm_interface.c
++@@ -8716,7 +8716,7 @@ static int ecm_interface_wifi_event_iwev
++ 		/*
++ 		 * Copy the base data structure to get iwe->len
++ 		 */
++-		memcpy(&iwe_buf, pos, IW_EV_LCP_LEN);
+++		memcpy(&iwe_buf, pos, min_t(size_t, IW_EV_LCP_LEN, (size_t)(end - pos)));
++ 
++ 		/*
++ 		 * Check that len is valid and that we have that much in the buffer.
++@@ -8733,10 +8733,10 @@ static int ecm_interface_wifi_event_iwev
++ 			dpos = (char *)&iwe_buf.u.data.length;
++ 			dlen = dpos - (char *)&iwe_buf;
++ 
++-			memcpy(dpos, pos + IW_EV_LCP_LEN, sizeof(struct iw_event) - dlen);
+++			memcpy(dpos, pos + IW_EV_LCP_LEN, min_t(size_t, sizeof(struct iw_event) - dlen, (size_t)(end - pos - IW_EV_LCP_LEN)));
++ 
++ 			if (custom + iwe->u.data.length > end) {
++-				DEBUG_WARN("Invalid buffer length received in the event iwe->u.data.length %d\n", iwe->u.data.length);
+++				DEBUG_WARN("Invalid buffer length received in the event iwe->u.data.length %d\n", (int)iwe->u.data.length);
++ 				return -1;
++ 			}
++ 
++@@ -8744,7 +8744,7 @@ static int ecm_interface_wifi_event_iwev
++ 			 * Check the flags of iw event if it indicates the IW authorized signal.
++ 			 */
++ 			if (iwe->u.data.flags == ECM_INTERFACE_WIFI_EVENT_NODE_AUTH) {
++-				dbuf = kzalloc((iwe->u.data.length + 1), GFP_KERNEL);
+++				dbuf = kzalloc(iwe->u.data.length, GFP_KERNEL);
++ 				if (!dbuf) {
++ 					DEBUG_WARN("Failed to allocated a buffer to process the custom event");
++ 					return -1;
++@@ -8767,16 +8767,16 @@ static int ecm_interface_wifi_event_iwev
++ 			return 0;
++ 		}
++ 
++-		if ((iwe->len > sizeof(struct iw_event)) || (iwe->len + pos) > end) {
+++		if ((iwe->len > sizeof(struct iw_event)) || (iwe->len + pos > end)) {
++ 			return -1;
++ 		}
++ 
++ 		/*
++ 		 * Do the copy again with the full length.
++ 		 */
++-		memcpy(&iwe_buf, pos, iwe->len);
+++		memcpy(&iwe_buf, pos, min_t(size_t, iwe->len, (size_t)(end - pos)));
++ 
++-		if (iwe->cmd == IWEVEXPIRED) {
+++		if (iwe->cmd == IWEVEXPIRED && iwe->len >= sizeof(struct iw_event)) {
++ 			DEBUG_INFO("STA %pM leaving\n", (uint8_t *)iwe->u.addr.sa_data);
++ 			ecm_interface_node_connections_defunct((uint8_t *)iwe->u.addr.sa_data, ECM_DB_IP_VERSION_IGNORE);
++ 		} else {
+--- /dev/null	2024-12-26 00:11:56.425999992 +0800
++++ b/package/kernel/qca-nss-ecm/patches/0018-ecm-compat-nss-12_2.patch	2024-12-29 15:57:28.582885972 +0800
+@@ -0,0 +1,20 @@
++--- a/frontends/nss/ecm_nss_non_ported_ipv4.c
+++++ b/frontends/nss/ecm_nss_non_ported_ipv4.c
++@@ -901,7 +901,7 @@ static void ecm_nss_non_ported_ipv4_conn
++ #endif
++ 			break;
++ 		case ECM_DB_IFACE_TYPE_RAWIP:
++-#ifdef ECM_INTERFACE_RAWIP_ENABLE
+++#if defined(NSS_FIRMWARE_VERSION_12_5) && defined(ECM_INTERFACE_RAWIP_ENABLE)
++ 			nircm->valid_flags |= NSS_IPV4_RULE_CREATE_RAWIP_VALID;
++ #else
++ 			rule_invalid = true;
++@@ -1143,7 +1143,7 @@ static void ecm_nss_non_ported_ipv4_conn
++ #endif
++ 			break;
++ 		case ECM_DB_IFACE_TYPE_RAWIP:
++-#ifdef ECM_INTERFACE_RAWIP_ENABLE
+++#if defined(NSS_FIRMWARE_VERSION_12_5) && defined(ECM_INTERFACE_RAWIP_ENABLE)
++ 			nircm->valid_flags |= NSS_IPV4_RULE_CREATE_RAWIP_VALID;
++ #else
++ 			rule_invalid = true;
+--- /dev/null	2024-12-26 00:11:56.425999992 +0800
++++ b/package/kernel/qca-nss-ecm/patches/0019-ecm-fix-missing-nl80211.patch	2024-12-29 15:57:28.696885982 +0800
+@@ -0,0 +1,10 @@
++--- a/ecm_interface.c
+++++ b/ecm_interface.c
++@@ -47,6 +47,7 @@
++ #include <linux/rtnetlink.h>
++ #include <linux/socket.h>
++ #include <linux/wireless.h>
+++#include <linux/nl80211.h>
++ #include <net/genetlink.h>
++ #include <linux/nl80211.h>
++ #include <net/gre.h>
+--- /dev/null	2024-12-26 00:11:56.425999992 +0800
++++ b/package/kernel/qca-nss-ecm/patches/0020-remove-obsolete-struct-member.patch	2024-12-29 15:57:28.815885993 +0800
+@@ -0,0 +1,90 @@
++--- a/frontends/sfe/ecm_sfe_ported_ipv4.c
+++++ b/frontends/sfe/ecm_sfe_ported_ipv4.c
++@@ -93,15 +93,7 @@
++ static int ecm_sfe_ported_ipv4_accelerated_count[ECM_FRONT_END_PORTED_PROTO_MAX] = {0};
++ 						/* Array of Number of TCP and UDP connections currently offloaded */
++ 
++-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 13, 0))
++-/*
++- * Expose what should be a static flag in the TCP connection tracker.
++- */
++-#ifdef ECM_OPENWRT_SUPPORT
++-extern int nf_ct_tcp_no_window_check;
++-#endif
++ extern int nf_ct_tcp_be_liberal;
++-#endif
++ 
++ /*
++  * ecm_sfe_ported_ipv4_connection_callback()
++@@ -1582,14 +1574,8 @@ static void ecm_sfe_ported_ipv4_connecti
++ 		} else {
++ 			int flow_dir;
++ 			int return_dir;
++-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 13, 0))
++-			uint32_t tcp_be_liberal = nf_ct_tcp_be_liberal;
++-			uint32_t tcp_no_window_check = nf_ct_tcp_no_window_check;
++-#else
++ 			struct nf_tcp_net *tn = nf_tcp_pernet(nf_ct_net(ct));
++ 			uint32_t tcp_be_liberal = tn->tcp_be_liberal;
++-			uint32_t tcp_no_window_check = tn->tcp_no_window_check;
++-#endif
++ 			ecm_db_connection_address_get(feci->ci, ECM_DB_OBJ_DIR_FROM, addr);
++ 			ecm_front_end_flow_and_return_directions_get(ct, addr, 4, &flow_dir, &return_dir);
++ 
++@@ -1604,11 +1590,7 @@ static void ecm_sfe_ported_ipv4_connecti
++ 			nircm->tcp_rule.return_end = ct->proto.tcp.seen[return_dir].td_end;
++ 			nircm->tcp_rule.return_max_end = ct->proto.tcp.seen[return_dir].td_maxend;
++ 
++-#ifdef ECM_OPENWRT_SUPPORT
++-			if (tcp_be_liberal || tcp_no_window_check
++-#else
++ 			if (tcp_be_liberal
++-#endif
++ 					|| (ct->proto.tcp.seen[flow_dir].flags & IP_CT_TCP_FLAG_BE_LIBERAL)
++ 					|| (ct->proto.tcp.seen[return_dir].flags & IP_CT_TCP_FLAG_BE_LIBERAL)) {
++ 				nircm->rule_flags |= SFE_RULE_CREATE_FLAG_NO_SEQ_CHECK;
++--- a/frontends/sfe/ecm_sfe_ported_ipv6.c
+++++ b/frontends/sfe/ecm_sfe_ported_ipv6.c
++@@ -93,15 +93,7 @@
++ static int ecm_sfe_ported_ipv6_accelerated_count[ECM_FRONT_END_PORTED_PROTO_MAX] = {0};
++ 						/* Array of Number of TCP and UDP connections currently offloaded */
++ 
++-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 13, 0))
++-/*
++- * Expose what should be a static flag in the TCP connection tracker.
++- */
++-#ifdef ECM_OPENWRT_SUPPORT
++-extern int nf_ct_tcp_no_window_check;
++-#endif
++ extern int nf_ct_tcp_be_liberal;
++-#endif
++ 
++ /*
++  * ecm_sfe_ported_ipv6_connection_callback()
++@@ -1610,14 +1602,8 @@ static void ecm_sfe_ported_ipv6_connecti
++ 		} else {
++ 			int flow_dir;
++ 			int return_dir;
++-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 13, 0))
++-			uint32_t tcp_be_liberal = nf_ct_tcp_be_liberal;
++-			uint32_t tcp_no_window_check = nf_ct_tcp_no_window_check;
++-#else
++ 			struct nf_tcp_net *tn = nf_tcp_pernet(nf_ct_net(ct));
++ 			uint32_t tcp_be_liberal = tn->tcp_be_liberal;
++-			uint32_t tcp_no_window_check = tn->tcp_no_window_check;
++-#endif
++ 			ecm_front_end_flow_and_return_directions_get(ct, src_ip, 6, &flow_dir, &return_dir);
++ 
++ 			DEBUG_TRACE("%px: TCP Accel Get window data from ct %px for conn %px\n", feci, ct, feci->ci);
++@@ -1630,11 +1616,7 @@ static void ecm_sfe_ported_ipv6_connecti
++ 			nircm->tcp_rule.return_max_window = ct->proto.tcp.seen[return_dir].td_maxwin;
++ 			nircm->tcp_rule.return_end = ct->proto.tcp.seen[return_dir].td_end;
++ 			nircm->tcp_rule.return_max_end = ct->proto.tcp.seen[return_dir].td_maxend;
++-#ifdef ECM_OPENWRT_SUPPORT
++-			if (tcp_be_liberal || tcp_no_window_check
++-#else
++ 			if (tcp_be_liberal
++-#endif
++ 					|| (ct->proto.tcp.seen[flow_dir].flags & IP_CT_TCP_FLAG_BE_LIBERAL)
++ 					|| (ct->proto.tcp.seen[return_dir].flags & IP_CT_TCP_FLAG_BE_LIBERAL)) {
++ 				nircm->rule_flags |= SFE_RULE_CREATE_FLAG_NO_SEQ_CHECK;
+--- /dev/null	2024-12-26 00:11:56.425999992 +0800
++++ b/package/kernel/qca-nss-ecm/patches/0021-replace-vmalloc-functions.patch	2024-12-29 15:57:28.952886006 +0800
+@@ -0,0 +1,166 @@
++--- a/frontends/ecm_front_end_common.c
+++++ b/frontends/ecm_front_end_common.c
++@@ -1104,7 +1104,7 @@ static int ecm_front_end_denied_ports_ha
++ 					continue;
++ 				}
++ 
++-				p = vmalloc(sizeof(struct ecm_denied_port_node));
+++				p = kvmalloc(sizeof(struct ecm_denied_port_node),GFP_KERNEL);
++ 				if (!p) {
++ 					DEBUG_ERROR("unable to allocate memory for port node: %d\n", port);
++ 					return -ENOMEM;
++@@ -1145,7 +1145,7 @@ static int ecm_front_end_denied_ports_ha
++ 					struct ecm_denied_port_node *p = hlist_entry(pnode, struct ecm_denied_port_node, hnode);
++ 					if (p->port == port) {
++ 						hlist_del(&p->hnode);
++-						vfree(p);
+++						kvfree(p);
++ 						if (is_udp) {
++ 							atomic_dec(&ecm_udp_denied_port_count);
++ 						} else {
++--- a/frontends/ppe/ecm_ppe_ipv6.c
+++++ b/frontends/ppe/ecm_ppe_ipv6.c
++@@ -831,7 +831,7 @@ static bool ecm_ppe_ipv6_sync_queue_init
++ 
++ 	ecm_ppe_ipv6_workqueue = create_singlethread_workqueue("ecm_ppe_ipv6_workqueue");
++ 	if (!ecm_ppe_ipv6_workqueue) {
++-		vfree(ecm_ppe_ipv6_sync_req_msg.conn_sync);
+++		kvfree(ecm_ppe_ipv6_sync_req_msg.conn_sync);
++ 		return false;
++ 	}
++ 
++@@ -852,7 +852,7 @@ static void ecm_ppe_ipv6_sync_queue_exit
++ 	 */
++ 	cancel_delayed_work_sync(&ecm_ppe_ipv6_work);
++ 	destroy_workqueue(ecm_ppe_ipv6_workqueue);
++-	vfree(ecm_ppe_ipv6_sync_req_msg.conn_sync);
+++	kvfree(ecm_ppe_ipv6_sync_req_msg.conn_sync);
++ }
++ 
++ /*
++--- a/frontends/ppe/ecm_ppe_ipv4.c
+++++ b/frontends/ppe/ecm_ppe_ipv4.c
++@@ -772,7 +772,7 @@ static bool ecm_ppe_ipv4_sync_queue_init
++ 
++ 	ecm_ppe_ipv4_workqueue = create_singlethread_workqueue("ecm_ppe_ipv4_workqueue");
++ 	if (!ecm_ppe_ipv4_workqueue) {
++-		vfree(ecm_ppe_ipv4_sync_req_msg.conn_sync);
+++		kvfree(ecm_ppe_ipv4_sync_req_msg.conn_sync);
++ 		return false;
++ 	}
++ 
++@@ -793,7 +793,7 @@ static void ecm_ppe_ipv4_sync_queue_exit
++ 	 */
++ 	cancel_delayed_work_sync(&ecm_ppe_ipv4_work);
++ 	destroy_workqueue(ecm_ppe_ipv4_workqueue);
++-	vfree(ecm_ppe_ipv4_sync_req_msg.conn_sync);
+++	kvfree(ecm_ppe_ipv4_sync_req_msg.conn_sync);
++ }
++ 
++ /*
++--- a/ecm_db/ecm_db_connection.c
+++++ b/ecm_db/ecm_db_connection.c
++@@ -4628,24 +4628,24 @@ bool ecm_db_connection_init(struct dentr
++ 	ecm_db_connection_table_lengths = vzalloc(sizeof(int) * ECM_DB_CONNECTION_HASH_SLOTS);
++ 	if (!ecm_db_connection_table_lengths) {
++ 		DEBUG_ERROR("Failed to allocate virtual memory for ecm_db_connection_table_lengths\n");
++-		vfree(ecm_db_connection_table);
+++		kvfree(ecm_db_connection_table);
++ 		return false;
++ 	}
++ 
++ 	ecm_db_connection_serial_table = vzalloc(sizeof(struct ecm_db_connection_instance *) * ECM_DB_CONNECTION_SERIAL_HASH_SLOTS);
++ 	if (!ecm_db_connection_serial_table) {
++ 		DEBUG_ERROR("Failed to allocate virtual memory for ecm_db_connection_serial_table\n");
++-		vfree(ecm_db_connection_table_lengths);
++-		vfree(ecm_db_connection_table);
+++		kvfree(ecm_db_connection_table_lengths);
+++		kvfree(ecm_db_connection_table);
++ 		return false;
++ 	}
++ 
++ 	ecm_db_connection_serial_table_lengths = vzalloc(sizeof(int) * ECM_DB_CONNECTION_SERIAL_HASH_SLOTS);
++ 	if (!ecm_db_connection_serial_table_lengths) {
++ 		DEBUG_ERROR("Failed to allocate virtual memory for ecm_db_connection_serial_table_lengths\n");
++-		vfree(ecm_db_connection_serial_table);
++-		vfree(ecm_db_connection_table_lengths);
++-		vfree(ecm_db_connection_table);
+++		kvfree(ecm_db_connection_serial_table);
+++		kvfree(ecm_db_connection_table_lengths);
+++		kvfree(ecm_db_connection_table);
++ 		return false;
++ 	}
++ 
++@@ -4668,8 +4668,8 @@ bool ecm_db_connection_init(struct dentr
++  */
++ void ecm_db_connection_exit(void)
++ {
++-	vfree(ecm_db_connection_serial_table_lengths);
++-	vfree(ecm_db_connection_serial_table);
++-	vfree(ecm_db_connection_table_lengths);
++-	vfree(ecm_db_connection_table);
+++	kvfree(ecm_db_connection_serial_table_lengths);
+++	kvfree(ecm_db_connection_serial_table);
+++	kvfree(ecm_db_connection_table_lengths);
+++	kvfree(ecm_db_connection_table);
++ }
++--- a/ecm_db/ecm_db_node.c
+++++ b/ecm_db/ecm_db_node.c
++@@ -1229,7 +1229,7 @@ bool ecm_db_node_init(struct dentry *den
++ 	ecm_db_node_table_lengths = vzalloc(sizeof(int) * ECM_DB_NODE_HASH_SLOTS);
++ 	if (!ecm_db_node_table_lengths) {
++ 		DEBUG_ERROR("Failed to allocate virtual memory for ecm_db_node_table_lengths\n");
++-		vfree(ecm_db_node_table);
+++		kvfree(ecm_db_node_table);
++ 		return false;
++ 	}
++ 
++@@ -1241,6 +1241,6 @@ bool ecm_db_node_init(struct dentry *den
++  */
++ void ecm_db_node_exit(void)
++ {
++-	vfree(ecm_db_node_table_lengths);
++-	vfree(ecm_db_node_table);
+++	kvfree(ecm_db_node_table_lengths);
+++	kvfree(ecm_db_node_table);
++ }
++--- a/ecm_db/ecm_db_host.c
+++++ b/ecm_db/ecm_db_host.c
++@@ -791,7 +791,7 @@ bool ecm_db_host_init(struct dentry *den
++ 	ecm_db_host_table_lengths = vzalloc(sizeof(int) * ECM_DB_HOST_HASH_SLOTS);
++ 	if (!ecm_db_host_table_lengths) {
++ 		DEBUG_ERROR("Failed to allocate virtual memory for ecm_db_host_table_lengths\n");
++-		vfree(ecm_db_host_table);
+++		kvfree(ecm_db_host_table);
++ 		return false;
++ 	}
++ 
++@@ -803,6 +803,6 @@ bool ecm_db_host_init(struct dentry *den
++  */
++ void ecm_db_host_exit(void)
++ {
++-	vfree(ecm_db_host_table_lengths);
++-	vfree(ecm_db_host_table);
+++	kvfree(ecm_db_host_table_lengths);
+++	kvfree(ecm_db_host_table);
++ }
++--- a/ecm_db/ecm_db_mapping.c
+++++ b/ecm_db/ecm_db_mapping.c
++@@ -828,7 +828,7 @@ bool ecm_db_mapping_init(struct dentry *
++ 	ecm_db_mapping_table_lengths = vzalloc(sizeof(int) * ECM_DB_MAPPING_HASH_SLOTS);
++ 	if (!ecm_db_mapping_table_lengths) {
++ 		DEBUG_ERROR("Failed to allocate virtual memory for ecm_db_mapping_table_lengths\n");
++-		vfree(ecm_db_mapping_table);
+++		kvfree(ecm_db_mapping_table);
++ 		return false;
++ 	}
++ 
++@@ -840,6 +840,6 @@ bool ecm_db_mapping_init(struct dentry *
++  */
++ void ecm_db_mapping_exit(void)
++ {
++-	vfree(ecm_db_mapping_table_lengths);
++-	vfree(ecm_db_mapping_table);
+++	kvfree(ecm_db_mapping_table_lengths);
+++	kvfree(ecm_db_mapping_table);
++ }
+--- /dev/null	2024-12-26 00:11:56.425999992 +0800
++++ b/package/kernel/qca-nss-ecm/files/ecm_dump.sh	2024-12-28 13:40:42.992181915 +0800
+@@ -0,0 +1,80 @@
++#!/bin/sh
++
++ECM_MODULE=${1:-ecm_state}
++MOUNT_ROOT=/dev/ecm
++
++#
++# usage: ecm_dump.sh [module=ecm_db]
++#
++# with no parameters, ecm_dump.sh will attempt to mount the
++# ecm_db state file and cat its contents.
++#
++# example with a parameter: ecm_dump.sh ecm_classifier_default
++#
++# this will cause ecm_dump to attempt to find and mount the state
++# file for the ecm_classifier_default module, and if successful
++# cat the contents.
++#
++
++# this is one of the state files, which happens to be the
++# last module started in ecm
++ECM_STATE=/sys/kernel/debug/ecm/ecm_state/state_dev_major
++
++# tests to see if ECM is up and ready to receive commands.
++# returns 0 if ECM is fully up and ready, else 1
++ecm_is_ready() {
++	if [ ! -e "${ECM_STATE}" ]
++	then
++		return 1
++	fi
++	return 0
++}
++
++#
++# module_state_mount(module_name)
++#      Mounts the state file of the module, if supported
++#
++module_state_mount() {
++	local module_name=$1
++	local mount_dir=$2
++	local state_file="/sys/kernel/debug/ecm/${module_name}/state_dev_major"
++
++	if [ -e "${mount_dir}/${module_name}" ]
++	then
++		# already mounted
++		return 0
++	fi
++
++	#echo "Mount state file for $module_name ..."
++	if [ ! -e "$state_file" ]
++	then
++		#echo "... $module_name does not support state"
++		return 1
++	fi
++
++	local major="`cat $state_file`"
++	#echo "... Mounting state $state_file with major: $major"
++	mknod "${mount_dir}/${module_name}" c $major 0
++}
++
++#
++# main
++#
++ecm_is_ready || {
++	#echo "ECM is not running"
++	exit 1
++}
++
++# all state files are mounted under MOUNT_ROOT, so make sure it exists
++mkdir -p ${MOUNT_ROOT}
++
++#
++# attempt to mount state files for the requested module and cat it
++# if the mount succeeded
++#
++module_state_mount ${ECM_MODULE} ${MOUNT_ROOT} && {
++	cat ${MOUNT_ROOT}/${ECM_MODULE}
++	exit 0
++}
++
++exit 2
+--- /dev/null	2024-12-26 00:11:56.425999992 +0800
++++ b/package/kernel/qca-nss-ecm/files/on-demand-down	2024-12-28 13:40:42.992181915 +0800
+@@ -0,0 +1,6 @@
++#!/bin/sh
++# Copyright (c) 2016 The Linux Foundation. All rights reserved.
++
++[ -e "/sys/kernel/debug/ecm/ecm_db/defunct_all" ] && {
++	echo 1 > /sys/kernel/debug/ecm/ecm_db/defunct_all
++}
+--- /dev/null	2024-12-26 00:11:56.425999992 +0800
++++ b/package/kernel/qca-nss-ecm/files/qca-nss-ecm.init	2024-12-28 13:40:42.992181915 +0800
+@@ -0,0 +1,100 @@
++#!/bin/sh /etc/rc.common
++
++START=19
++
++USE_PROCD=1
++
++get_front_end_mode() {
++	config_load "ecm"
++	config_get front_end global acceleration_engine "auto"
++
++	case $front_end in
++	auto)
++		echo '0'
++		;;
++	nss)
++		echo '1'
++		;;
++	sfe)
++		echo '2'
++		;;
++	*)
++		echo 'uci_option_acceleration_engine is invalid'
++	esac
++}
++
++support_bridge() {
++	#NSS support bridge acceleration
++	[ -d /sys/kernel/debug/ecm/ecm_nss_ipv4 ] && return 0
++	#SFE doesn't support bridge acceleration
++	[ -d /sys/kernel/debug/ecm/ecm_sfe_ipv4 ] && return 1
++}
++
++load_sfe() {
++        [ -d /sys/module/qca_nss_sfe ] || insmod qca-nss-sfe
++}
++
++load_ecm() {
++	[ -d /sys/module/ecm ] || {
++		[ ! -e /proc/device-tree/MP_256 ] && load_sfe
++		insmod ecm front_end_selection=$(get_front_end_mode)
++	}
++
++	support_bridge && {
++		sysctl -w net.bridge.bridge-nf-call-ip6tables=1
++		sysctl -w net.bridge.bridge-nf-call-iptables=1
++	}
++}
++
++unload_ecm() {
++	sysctl -w net.bridge.bridge-nf-call-ip6tables=0
++	sysctl -w net.bridge.bridge-nf-call-iptables=0
++
++	if [ -d /sys/module/ecm ]; then
++		#
++		# Stop ECM frontends
++		#
++		echo 1 > /sys/kernel/debug/ecm/front_end_ipv4_stop
++		echo 1 > /sys/kernel/debug/ecm/front_end_ipv6_stop
++
++		#
++		# Defunct the connections
++		#
++	        echo 1 > /sys/kernel/debug/ecm/ecm_db/defunct_all
++		sleep 5;
++
++		rmmod ecm
++		sleep 1
++	fi
++}
++
++start_service() {
++	load_ecm
++
++	# If the acceleration engine is NSS, enable wifi redirect.
++	[ -d /sys/kernel/debug/ecm/ecm_nss_ipv4 ] && sysctl -w dev.nss.general.redirect=1
++
++	support_bridge && {
++		echo 'net.bridge.bridge-nf-call-ip6tables=1' >> /etc/sysctl.d/qca-nss-ecm.conf
++		echo 'net.bridge.bridge-nf-call-iptables=1' >> /etc/sysctl.d/qca-nss-ecm.conf
++	}
++
++	if [ -d /sys/module/qca_ovsmgr ]; then
++		insmod ecm_ovs
++	fi
++
++}
++
++stop_service() {
++	# If the acceleration engine is NSS, disable wifi redirect.
++	[ -d /sys/kernel/debug/ecm/ecm_nss_ipv4 ] && sysctl -w dev.nss.general.redirect=0
++
++	sed '/net.bridge.bridge-nf-call-ip6tables=1/d' -i /etc/sysctl.d/qca-nss-ecm.conf
++	sed '/net.bridge.bridge-nf-call-iptables=1/d' -i /etc/sysctl.d/qca-nss-ecm.conf
++
++	if [ -d /sys/module/ecm_ovs ]; then
++		rmmod ecm_ovs
++	fi
++
++	unload_ecm
++}
+--- /dev/null	2024-12-26 00:11:56.425999992 +0800
++++ b/package/kernel/qca-nss-ecm/files/qca-nss-ecm.sysctl	2024-12-28 13:40:42.992181915 +0800
+@@ -0,0 +1,2 @@
++# nf_conntrack_tcp_be_liberal is 0 by default, set it to 1
++net.netfilter.nf_conntrack_tcp_be_liberal=1
+--- /dev/null	2024-12-26 00:11:56.425999992 +0800
++++ b/package/kernel/qca-nss-ecm/files/qca-nss-ecm.uci	2024-12-28 13:40:42.992181915 +0800
+@@ -0,0 +1,2 @@
++config ecm 'global'
++	option acceleration_engine 'sfe'
+--- /dev/null	2024-12-26 00:11:56.425999992 +0800
++++ b/package/kernel/qca-nss-ecm/Makefile	2024-12-28 14:48:41.358488322 +0800
+@@ -0,0 +1,184 @@
++include $(TOPDIR)/rules.mk
++
++PKG_NAME:=qca-nss-ecm
++PKG_RELEASE:=3
++
++PKG_SOURCE_URL:=https://git.codelinaro.org/clo/qsdk/oss/lklm/qca-nss-ecm.git
++PKG_SOURCE_PROTO:=git
++PKG_SOURCE_DATE:=2024-12-02
++PKG_SOURCE_VERSION:=6eec321bac1217ca8c2872156594f29f65e5f2b4
++PKG_MIRROR_HASH:=01293e18fd0f741933d5eb51206e1117a120832917c7fa090628f5a325c192d8
++
++PKG_BUILD_PARALLEL:=1
++PKG_FLAGS:=nonshared
++PKG_BUILD_FLAGS:=no-lto
++
++include $(INCLUDE_DIR)/kernel.mk
++include $(INCLUDE_DIR)/package.mk
++
++define KernelPackage/qca-nss-ecm
++  SECTION:=kernel
++  CATEGORY:=Kernel modules
++  SUBMENU:=Network Support
++  DEPENDS:=+kmod-nf-conntrack \
++		   +PACKAGE_kmod-qca-nss-sfe:kmod-qca-nss-sfe \
++		   +PACKAGE_kmod-pppoe:kmod-pppoe \
++		   +PACKAGE_kmod-pppoe:kmod-pptp \
++		   +PACKAGE_kmod-pppoe:kmod-pppol2tp \
++
++  TITLE:=QCA NSS Enhanced Connection Manager (ECM)
++  FILES:=$(PKG_BUILD_DIR)/ecm.ko
++  KCONFIG:=CONFIG_BRIDGE_NETFILTER=y \
++	CONFIG_NF_CONNTRACK_EVENTS=y \
++	CONFIG_NF_CONNTRACK_CHAIN_EVENTS=y \
++	CONFIG_NF_CONNTRACK_DSCPREMARK_EXT=y
++endef
++
++define KernelPackage/qca-nss-ecm/Description
++This package contains the QCA NSS Enhanced Connection Manager
++endef
++
++define KernelPackage/qca-nss-ecm/conffiles
++/etc/config/ecm
++endef
++
++define KernelPackage/qca-nss-ecm/install
++	$(INSTALL_DIR) $(1)/etc/init.d
++	$(INSTALL_BIN) ./files/qca-nss-ecm.init $(1)/etc/init.d/qca_nss_ecm
++	$(INSTALL_DIR) $(1)/usr/bin
++	$(INSTALL_BIN) ./files/ecm_dump.sh $(1)/usr/bin/
++	$(INSTALL_DIR) $(1)/lib/netifd/offload
++	$(INSTALL_BIN) ./files/on-demand-down $(1)/lib/netifd/offload/on-demand-down
++	$(INSTALL_DIR) $(1)/etc/config
++	$(INSTALL_DATA) ./files/qca-nss-ecm.uci $(1)/etc/config/ecm
++	$(INSTALL_DIR) $(1)/etc/sysctl.d
++	$(INSTALL_BIN) ./files/qca-nss-ecm.sysctl $(1)/etc/sysctl.d/qca-nss-ecm.conf
++endef
++
++EXTRA_CFLAGS+= \
++		 -I$(STAGING_DIR)/usr/include/qca-nss-sfe
++
++ECM_MAKE_OPTS+= ECM_FRONT_END_SFE_ENABLE=y \
++			   ECM_NON_PORTED_SUPPORT_ENABLE=y \
++			   ECM_INTERFACE_VLAN_ENABLE=y \
++			   ECM_CLASSIFIER_MARK_ENABLE=y \
++			   ECM_CLASSIFIER_DSCP_ENABLE=y
++
++# Disable ECM IPv6 support when global IPv6 support is disabled.
++ifneq ($(CONFIG_IPV6),)
++ECM_MAKE_OPTS+=ECM_IPV6_ENABLE=y
++endif
++
++# Disable ECM Bridge VLAN Filtering support when global kernel config is disabled
++ifneq ($(CONFIG_BRIDGE_VLAN_FILTERING),)
++ECM_MAKE_OPTS+=ECM_BRIDGE_VLAN_FILTERING_ENABLE=y
++endif
++
++# Not wanted as not supported by SFE
++#ifneq ($(CONFIG_PACKAGE_kmod-qca-nss-drv-igs),)
++#ECM_MAKE_OPTS+=ECM_CLASSIFIER_DSCP_IGS=y
++#endif
++
++# Not wanted as not supported by SFE
++#ifneq ($(CONFIG_PACKAGE_kmod-qca-nss-drv-ovpn-link),)
++#ECM_MAKE_OPTS+=ECM_INTERFACE_OVPN_ENABLE=y
++#endif
++
++# Not wanted as not supported by SFE
++#ifeq ($(CONFIG_PACKAGE_kmod-vxlan),y)
++#ECM_MAKE_OPTS+=ECM_INTERFACE_VXLAN_ENABLE=y
++#endif
++
++# Not wanted as not supported by SFE
++#ifneq ($(CONFIG_PACKAGE_kmod-qca-ovsmgr),)
++#ECM_MAKE_OPTS+=ECM_INTERFACE_OVS_BRIDGE_ENABLE=y \
++#			   ECM_CLASSIFIER_OVS_ENABLE=y
++#EXTRA_CFLAGS+= -I$(STAGING_DIR)/usr/include/qca-ovsmgr
++#endif
++
++ifneq ($(CONFIG_PACKAGE_kmod-macvlan),)
++ECM_MAKE_OPTS+=ECM_INTERFACE_MACVLAN_ENABLE=y
++endif
++
++# Not wanted as not supported by SFE
++#ifneq ($(CONFIG_PACKAGE_kmod-qca-mcs),)
++#ECM_MAKE_OPTS+=ECM_MULTICAST_ENABLE=y
++#endif
++
++# Not supported by kernel
++#ifneq ($(CONFIG_PACKAGE_kmod-nat46),)
++#ECM_MAKE_OPTS+=ECM_INTERFACE_MAP_T_ENABLE=y
++#endif
++
++ifneq ($(CONFIG_PACKAGE_kmod-ipsec),)
++ECM_MAKE_OPTS+=ECM_INTERFACE_IPSEC_ENABLE=y
++endif
++
++ifneq ($(CONFIG_PACKAGE_kmod-pppoe),)
++ECM_MAKE_OPTS+=ECM_INTERFACE_PPPOE_ENABLE=y \
++			   ECM_INTERFACE_PPTP_ENABLE=y \
++			   ECM_INTERFACE_PPP_ENABLE=y
++else
++ECM_MAKE_OPTS+=ECM_INTERFACE_PPPOE_ENABLE=n \
++			   ECM_INTERFACE_PPTP_ENABLE=n \
++			   ECM_INTERFACE_PPP_ENABLE=n
++endif
++
++# Not wanted as not supported by SFE
++#ifneq ($(CONFIG_PACKAGE_kmod-pppol2tp),)
++#ECM_MAKE_OPTS+=ECM_INTERFACE_L2TPV2_ENABLE=y
++#else
++#ECM_MAKE_OPTS+=ECM_INTERFACE_L2TPV2_ENABLE=n
++#endif
++
++# Not wanted as not support by SFE kernel version not 4.4
++#ifneq ($(CONFIG_PACKAGE_kmod-gre)$(CONFIG_PACKAGE_kmod-gre6),)
++#ECM_MAKE_OPTS+=ECM_INTERFACE_GRE_TAP_ENABLE=y \
++#			   ECM_INTERFACE_GRE_TUN_ENABLE=y
++#endif
++
++ifneq ($(CONFIG_PACKAGE_kmod-sit),)
++ECM_MAKE_OPTS+=ECM_INTERFACE_SIT_ENABLE=y
++endif
++
++ifneq ($(CONFIG_PACKAGE_kmod-ip6-tunnel),)
++ECM_MAKE_OPTS+=ECM_INTERFACE_TUNIPIP6_ENABLE=y
++endif
++
++# Not wanted
++#ifneq ($(CONFIG_PACKAGE_kmod-qca-nss-drv-mscs),)
++#ECM_MAKE_OPTS+=ECM_CLASSIFIER_MSCS_ENABLE=y
++#endif
++
++# Not supported by kernel need additional patches
++#ifneq ($(CONFIG_PACKAGE_kmod-bonding),)
++#ECM_MAKE_OPTS+=ECM_INTERFACE_BOND_ENABLE=y
++#endif
++
++# Not wanted
++#ifneq ($(CONFIG_PACKAGE_kmod-qmi_wwan_q),)
++#ECM_MAKE_OPTS+=ECM_INTERFACE_RAWIP_ENABLE=y
++#endif
++
++# Not wanted
++#ifneq ($(CONFIG_NSS_FIRMWARE_VERSION_12_5),)
++#EXTRA_CFLAGS+=-DNSS_FIRMWARE_VERSION_12_5
++#endif
++
++define Build/InstallDev
++	mkdir -p $(1)/usr/include/qca-nss-ecm
++	$(CP) $(PKG_BUILD_DIR)/exports/* $(1)/usr/include/qca-nss-ecm
++endef
++
++define Build/Compile
++	+$(MAKE) -C "$(LINUX_DIR)" $(strip $(ECM_MAKE_OPTS)) \
++		CROSS_COMPILE="$(TARGET_CROSS)" \
++		ARCH="$(LINUX_KARCH)" \
++		M="$(PKG_BUILD_DIR)" \
++		EXTRA_CFLAGS="$(EXTRA_CFLAGS) -Wno-error=unused-function " \
++		$(KERNEL_MAKE_FLAGS) \
++		$(PKG_JOBS) \
++		modules
++endef
++
++$(eval $(call KernelPackage,qca-nss-ecm))
+diff --git a/package/Makefile b/package/Makefile
+index ca43eb7..6429637 100644
+--- a/package/Makefile
++++ b/package/Makefile
+@@ -118,6 +118,8 @@ endif
+ 	$(CP) $(TARGET_DIR) $(TARGET_DIR_ORIG)
+ 
+ 	$(call prepare_rootfs,$(TARGET_DIR),$(TOPDIR)/files)
++		find $(TARGET_DIR) -type f -name '*.orig' -delete
++		rm -f $(TARGET_DIR)/etc/rc.d/*qca_nss_ecm
+ 
+ $(curdir)/index: FORCE
+ 	@echo Generating package index...

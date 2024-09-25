@@ -1,0 +1,14 @@
+--- /dev/null
++++ b/target/linux/ath79/patches-6.6/914-napi_enable_threaded.patch
+@@ -0,0 +1,11 @@
++--- a/drivers/net/ethernet/atheros/ag71xx/ag71xx_main.c	2024-10-28 20:56:14.757188026 +0800
+++++ b/drivers/net/ethernet/atheros/ag71xx/ag71xx_main.c	2024-10-28 20:55:32.458477469 +0800
++@@ -1678,6 +1678,8 @@ static int ag71xx_probe(struct platform_
++ 			break;
++ 		}
++ 
+++	dev_set_threaded(dev, true);
+++
++ 	netif_napi_add_weight(dev, &ag->napi, ag71xx_poll, AG71XX_NAPI_WEIGHT);
++ 
++ 	ag71xx_dump_regs(ag);
