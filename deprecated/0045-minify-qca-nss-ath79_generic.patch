@@ -1,0 +1,81 @@
+--- a/package/kernel/qca-nss-ecm/Makefile	2024-12-29 03:43:18.614562670 +0800
++++ b/package/kernel/qca-nss-ecm/Makefile	2024-12-29 05:24:04.679494028 +0800
+@@ -22,9 +22,7 @@ define KernelPackage/qca-nss-ecm
+   SUBMENU:=Network Support
+   DEPENDS:=+kmod-nf-conntrack \
+ 		   +PACKAGE_kmod-qca-nss-sfe:kmod-qca-nss-sfe \
+-		   +PACKAGE_kmod-pppoe:kmod-pppoe \
+-		   +PACKAGE_kmod-pppoe:kmod-pptp \
+-		   +PACKAGE_kmod-pppoe:kmod-pppol2tp \
++		   +PACKAGE_kmod-pppoe:kmod-pppoe
+ 
+   TITLE:=QCA NSS Enhanced Connection Manager (ECM)
+   FILES:=$(PKG_BUILD_DIR)/ecm.ko
+@@ -110,9 +108,10 @@ endif
+ #ECM_MAKE_OPTS+=ECM_INTERFACE_MAP_T_ENABLE=y
+ #endif
+ 
+-ifneq ($(CONFIG_PACKAGE_kmod-ipsec),)
+-ECM_MAKE_OPTS+=ECM_INTERFACE_IPSEC_ENABLE=y
+-endif
++# Disable to reduce size
++#ifneq ($(CONFIG_PACKAGE_kmod-ipsec),)
++#ECM_MAKE_OPTS+=ECM_INTERFACE_IPSEC_ENABLE=y
++#endif
+ 
+ ifneq ($(CONFIG_PACKAGE_kmod-pppoe),)
+ ECM_MAKE_OPTS+=ECM_INTERFACE_PPPOE_ENABLE=y \
+@@ -137,13 +136,15 @@ endif
+ #			   ECM_INTERFACE_GRE_TUN_ENABLE=y
+ #endif
+ 
+-ifneq ($(CONFIG_PACKAGE_kmod-sit),)
+-ECM_MAKE_OPTS+=ECM_INTERFACE_SIT_ENABLE=y
+-endif
++#Disable to reduce size
++#ifneq ($(CONFIG_PACKAGE_kmod-sit),)
++#ECM_MAKE_OPTS+=ECM_INTERFACE_SIT_ENABLE=y
++#endif
+ 
+-ifneq ($(CONFIG_PACKAGE_kmod-ip6-tunnel),)
+-ECM_MAKE_OPTS+=ECM_INTERFACE_TUNIPIP6_ENABLE=y
+-endif
++#Disable to reduce size
++#ifneq ($(CONFIG_PACKAGE_kmod-ip6-tunnel),)
++#ECM_MAKE_OPTS+=ECM_INTERFACE_TUNIPIP6_ENABLE=y
++#endif
+ 
+ # Not wanted
+ #ifneq ($(CONFIG_PACKAGE_kmod-qca-nss-drv-mscs),)
+--- a/package/kernel/qca-nss-sfe/Makefile	2024-12-29 03:43:18.611562673 +0800
++++ b/package/kernel/qca-nss-sfe/Makefile	2024-12-29 05:19:07.468765182 +0800
+@@ -34,7 +34,8 @@ EXTRA_CFLAGS+= \
+ 	-I$(PKG_BUILD_DIR)/exports
+ 
+ PKG_MAKE_FLAGS += SFE_SUPPORT_IPV6=y \
+-		   SFE_BRIDGE_VLAN_FILTERING_ENABLE=y 
++		   SFE_BRIDGE_VLAN_FILTERING_ENABLE=y \
++		   SFE_256M_PROFILE=y SFE_MEM_PROFILE_LOW=y
+ 
+ define Build/InstallDev
+ 	mkdir -p $(1)/usr/include/qca-nss-sfe
+--- a/include/target.mk	2024-12-29 12:47:30.162404879 +0800
++++ b/include/target.mk	2024-12-29 12:50:57.596140720 +0800
+@@ -25,7 +25,7 @@ DEFAULT_PACKAGES:=\
+ 	fstools \
+ 	libc \
+ 	libgcc \
+-	libustream-openssl \
++	libustream-mbedtls \
+ 	logd \
+ 	luci \
+ 	luci-mod-admin-full \
+@@ -224,7 +224,7 @@ LINUX_RECONF_DIFF = $(SCRIPT_DIR)/kconfi
+ ifeq ($(DUMP),1)
+   BuildTarget=$(BuildTargets/DumpCurrent)
+ 
+-  CPU_CFLAGS = -O2 -pipe
++  CPU_CFLAGS = -Os -pipe
+   ifneq ($(findstring mips,$(ARCH)),)
+     ifneq ($(findstring mips64,$(ARCH)),)
+       CPU_TYPE ?= mips64

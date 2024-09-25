@@ -1,0 +1,19 @@
+diff --git a/target/linux/ramips/patches-6.6/902-enable-threaded-napi.patch b/target/linux/ramips/patches-6.6/902-enable-threaded-napi.patch
+new file mode 100644
+index 0000000..369d54b
+--- /dev/null
++++ b/target/linux/ramips/patches-6.6/902-enable-threaded-napi.patch
+@@ -0,0 +1,13 @@
++--- a/drivers/net/ethernet/ralink/mtk_eth_soc.c	2024-10-26 19:22:02.273945856 +0800
+++++ b/drivers/net/ethernet/ralink/mtk_eth_soc.c	2024-10-26 19:52:07.770339532 +0800
++@@ -1621,6 +1621,10 @@ static int fe_probe(struct platform_devi
++ 		priv->tx_ring.tx_ring_size *= 4;
++ 		priv->rx_ring.rx_ring_size *= 4;
++ 	}
+++
+++	if (IS_ENABLED(CONFIG_SOC_MT7621))
+++		dev_set_threaded(netdev, true);
+++
++ 	netif_napi_add_weight(netdev, &priv->rx_napi, fe_poll, napi_weight);
++ 	fe_set_ethtool_ops(netdev);
++ 
