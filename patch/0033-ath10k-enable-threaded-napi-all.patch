@@ -1,0 +1,26 @@
+diff --git a/package/kernel/mac80211/patches/ath10k/991-enable-threaded-napi.patch.patch b/package/kernel/mac80211/patches/ath10k/991-enable-threaded-napi.patch.patch
+new file mode 100644
+index 0000000..bd41644
+--- /dev/null
++++ b/package/kernel/mac80211/patches/ath10k/991-enable-threaded-napi.patch.patch
+@@ -0,0 +1,20 @@
++--- a/drivers/net/wireless/ath/ath10k/ahb.c	2024-10-05 00:14:45.000000000 +0800
+++++ b/drivers/net/wireless/ath/ath10k/ahb.c	2024-10-26 15:56:16.838581766 +0800
++@@ -619,6 +619,7 @@ static int ath10k_ahb_hif_start(struct a
++ {
++ 	ath10k_dbg(ar, ATH10K_DBG_BOOT, "boot ahb hif start\n");
++ 
+++	dev_set_threaded(ar->napi_dev, true);
++ 	ath10k_core_napi_enable(ar);
++ 	ath10k_ce_enable_interrupts(ar);
++ 	ath10k_pci_enable_intx_irq(ar);
++--- a/drivers/net/wireless/ath/ath10k/pci.c	2024-10-26 15:26:58.675277367 +0800
+++++ b/drivers/net/wireless/ath/ath10k/pci.c	2024-10-26 15:56:14.045557440 +0800
++@@ -1975,6 +1975,7 @@ static int ath10k_pci_hif_start(struct a
++ 
++ 	ath10k_dbg(ar, ATH10K_DBG_BOOT, "boot hif start\n");
++ 
+++	dev_set_threaded(ar->napi_dev, true);
++ 	ath10k_core_napi_enable(ar);
++ 
++ 	ath10k_pci_irq_enable(ar);

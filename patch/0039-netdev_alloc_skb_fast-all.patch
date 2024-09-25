@@ -1,0 +1,231 @@
+--- /dev/null	2025-01-10 21:27:25.721992006 +0800
++++ b/package/kernel/mac80211/patches/ath9k/554-ath9k-netdev_alloc_skb_fast.patch	2025-01-14 00:55:33.550028412 +0800
+@@ -0,0 +1,109 @@
++--- a/drivers/net/wireless/ath/ath9k/tx99.c	2025-01-14 00:45:50.085484430 +0800
+++++ b/drivers/net/wireless/ath/ath9k/tx99.c	2025-01-14 00:49:08.926409810 +0800
++@@ -56,7 +56,7 @@ static struct sk_buff *ath9k_build_tx99_
++ 	struct sk_buff *skb;
++ 	struct ath_vif *avp;
++ 
++-	skb = alloc_skb(len, GFP_KERNEL);
+++	skb = __netdev_alloc_skb_fast(NULL, len, GFP_KERNEL);
++ 	if (!skb)
++ 		return NULL;
++ 
++--- a/drivers/net/wireless/ath/ath9k/link.c	2025-01-14 00:45:50.086484424 +0800
+++++ b/drivers/net/wireless/ath/ath9k/link.c	2025-01-14 00:49:08.928409800 +0800
++@@ -236,7 +236,7 @@ void ath_paprd_calibrate(struct work_str
++ 	if (ar9003_paprd_init_table(ah) < 0)
++ 		goto fail_paprd;
++ 
++-	skb = alloc_skb(len, GFP_KERNEL);
+++	skb = __netdev_alloc_skb_fast(NULL, len, GFP_KERNEL);
++ 	if (!skb)
++ 		goto fail_paprd;
++ 
++--- a/drivers/net/wireless/ath/ath9k/htc_hst.c	2025-01-14 00:45:50.087484419 +0800
+++++ b/drivers/net/wireless/ath/ath9k/htc_hst.c	2025-01-14 00:49:08.929409795 +0800
++@@ -158,7 +158,7 @@ static int htc_config_pipe_credits(struc
++ 	int ret;
++ 	unsigned long time_left;
++ 
++-	skb = alloc_skb(50 + sizeof(struct htc_frame_hdr), GFP_ATOMIC);
+++	skb = __netdev_alloc_skb_fast(NULL, 50 + sizeof(struct htc_frame_hdr), GFP_ATOMIC);
++ 	if (!skb) {
++ 		dev_err(target->dev, "failed to allocate send buffer\n");
++ 		return -ENOMEM;
++@@ -196,7 +196,7 @@ static int htc_setup_complete(struct htc
++ 	int ret = 0;
++ 	unsigned long time_left;
++ 
++-	skb = alloc_skb(50 + sizeof(struct htc_frame_hdr), GFP_ATOMIC);
+++	skb = __netdev_alloc_skb_fast(NULL, 50 + sizeof(struct htc_frame_hdr), GFP_ATOMIC);
++ 	if (!skb) {
++ 		dev_err(target->dev, "failed to allocate send buffer\n");
++ 		return -ENOMEM;
++@@ -262,7 +262,7 @@ int htc_connect_service(struct htc_targe
++ 	endpoint->dl_pipeid = service_to_dlpipe(service_connreq->service_id);
++ 	endpoint->ep_callbacks = service_connreq->ep_callbacks;
++ 
++-	skb = alloc_skb(sizeof(struct htc_conn_svc_msg) +
+++	skb = __netdev_alloc_skb_fast(NULL, sizeof(struct htc_conn_svc_msg) +
++ 			    sizeof(struct htc_frame_hdr), GFP_ATOMIC);
++ 	if (!skb) {
++ 		dev_err(target->dev, "Failed to allocate buf to send"
++--- a/drivers/net/wireless/ath/ath9k/wmi.c	2025-01-14 00:45:50.088484413 +0800
+++++ b/drivers/net/wireless/ath/ath9k/wmi.c	2025-01-14 00:49:08.930409790 +0800
++@@ -323,7 +323,7 @@ int ath9k_wmi_cmd(struct wmi *wmi, enum
++ 	if (ah->ah_flags & AH_UNPLUGGED)
++ 		return 0;
++ 
++-	skb = alloc_skb(headroom + cmd_len, GFP_ATOMIC);
+++	skb = __netdev_alloc_skb_fast(NULL, headroom + cmd_len, GFP_ATOMIC);
++ 	if (!skb)
++ 		return -ENOMEM;
++ 
++--- a/drivers/net/wireless/ath/ath9k/hif_usb.c	2025-01-14 00:45:50.088484413 +0800
+++++ b/drivers/net/wireless/ath/ath9k/hif_usb.c	2025-01-14 00:49:08.931409784 +0800
++@@ -626,7 +626,7 @@ static void ath9k_hif_usb_rx_stream(stru
++ 
++ 		if (index > MAX_RX_BUF_SIZE) {
++ 			spin_lock(&hif_dev->rx_lock);
++-			nskb = __dev_alloc_skb(pkt_len + 32, GFP_ATOMIC);
+++			nskb = __netdev_alloc_skb_fast(NULL, pkt_len + 32, GFP_ATOMIC);
++ 			if (!nskb) {
++ 				dev_err(&hif_dev->udev->dev,
++ 					"ath9k_htc: RX memory allocation error\n");
++@@ -654,7 +654,7 @@ static void ath9k_hif_usb_rx_stream(stru
++ 					"ath9k_htc: over RX MAX_PKT_NUM\n");
++ 				goto err;
++ 			}
++-			nskb = __dev_alloc_skb(pkt_len + 32, GFP_ATOMIC);
+++			nskb = __netdev_alloc_skb_fast(NULL, pkt_len + 32, GFP_ATOMIC);
++ 			if (!nskb) {
++ 				dev_err(&hif_dev->udev->dev,
++ 					"ath9k_htc: RX memory allocation error\n");
++@@ -769,7 +769,7 @@ static void ath9k_hif_usb_reg_in_cb(stru
++ 		ath9k_htc_rx_msg(hif_dev->htc_handle, skb,
++ 				 skb->len, USB_REG_IN_PIPE);
++ 
++-		skb = alloc_skb(MAX_REG_IN_BUF_SIZE, GFP_ATOMIC);
+++		skb = __netdev_alloc_skb_fast(NULL, MAX_REG_IN_BUF_SIZE, GFP_ATOMIC);
++ 		if (!skb) {
++ 			dev_err(&hif_dev->udev->dev,
++ 				"ath9k_htc: REG_IN memory allocation failure\n");
++@@ -911,7 +911,7 @@ static int ath9k_hif_usb_alloc_rx_urbs(s
++ 		}
++ 
++ 		/* Allocate buffer */
++-		skb = alloc_skb(MAX_RX_BUF_SIZE, GFP_KERNEL);
+++		skb = __netdev_alloc_skb_fast(NULL, MAX_RX_BUF_SIZE, GFP_KERNEL);
++ 		if (!skb) {
++ 			ret = -ENOMEM;
++ 			goto err_skb;
++@@ -986,7 +986,7 @@ static int ath9k_hif_usb_alloc_reg_in_ur
++ 		}
++ 
++ 		/* Allocate buffer */
++-		skb = alloc_skb(MAX_REG_IN_BUF_SIZE, GFP_KERNEL);
+++		skb = __netdev_alloc_skb_fast(NULL, MAX_REG_IN_BUF_SIZE, GFP_KERNEL);
++ 		if (!skb) {
++ 			ret = -ENOMEM;
++ 			goto err_skb;
+--- /dev/null	2025-01-10 21:27:25.721992006 +0800
++++ b/package/kernel/mac80211/patches/ath10k/992-ath10k-netdev_alloc_skb_fast.patch	2025-01-14 00:53:51.855136255 +0800
+@@ -0,0 +1,102 @@
++--- a/drivers/net/wireless/ath/ath10k/pci.c	2025-01-14 00:31:03.482752753 +0800
+++++ b/drivers/net/wireless/ath/ath10k/pci.c	2025-01-14 00:37:26.326868881 +0800
++@@ -787,7 +787,7 @@ static int __ath10k_pci_rx_post_buf(stru
++ 	dma_addr_t paddr;
++ 	int ret;
++ 
++-	skb = dev_alloc_skb(pipe->buf_sz);
+++	skb = netdev_alloc_skb_fast(NULL, pipe->buf_sz);
++ 	if (!skb)
++ 		return -ENOMEM;
++ 
++--- a/drivers/net/wireless/ath/ath10k/usb.c	2025-01-14 00:31:03.485752715 +0800
+++++ b/drivers/net/wireless/ath/ath10k/usb.c	2025-01-14 00:37:26.329868857 +0800
++@@ -214,7 +214,7 @@ static void ath10k_usb_post_recv_transfe
++ 		if (!urb_context)
++ 			break;
++ 
++-		urb_context->skb = dev_alloc_skb(ATH10K_USB_RX_BUFFER_SIZE);
+++		urb_context->skb = netdev_alloc_skb_fast(NULL, ATH10K_USB_RX_BUFFER_SIZE);
++ 		if (!urb_context->skb)
++ 			goto err;
++ 
++--- a/drivers/net/wireless/ath/ath10k/sdio.c	2025-01-14 00:31:03.486752703 +0800
+++++ b/drivers/net/wireless/ath/ath10k/sdio.c	2025-01-14 00:37:26.331868840 +0800
++@@ -57,7 +57,7 @@ static inline int ath10k_sdio_mbox_alloc
++ 						bool part_of_bundle,
++ 						bool last_in_bundle)
++ {
++-	pkt->skb = dev_alloc_skb(full_len);
+++	pkt->skb = netdev_alloc_skb_fast(NULL, full_len);
++ 	if (!pkt->skb)
++ 		return -ENOMEM;
++ 
++@@ -1922,7 +1922,7 @@ static void ath10k_sdio_irq_disable(stru
++ 	struct completion irqs_disabled_comp;
++ 	int ret;
++ 
++-	skb = dev_alloc_skb(sizeof(*regs));
+++	skb = netdev_alloc_skb_fast(NULL, sizeof(*regs));
++ 	if (!skb)
++ 		return;
++ 
++--- a/drivers/net/wireless/ath/ath10k/htc.c	2025-01-14 00:31:03.486752703 +0800
+++++ b/drivers/net/wireless/ath/ath10k/htc.c	2025-01-14 00:37:26.332868832 +0800
++@@ -24,7 +24,7 @@ static struct sk_buff *ath10k_htc_build_
++ 	struct sk_buff *skb;
++ 	struct ath10k_skb_cb *skb_cb;
++ 
++-	skb = dev_alloc_skb(ATH10K_HTC_CONTROL_BUFFER_SIZE);
+++	skb = netdev_alloc_skb_fast(NULL, ATH10K_HTC_CONTROL_BUFFER_SIZE);
++ 	if (!skb)
++ 		return NULL;
++ 
++@@ -715,7 +715,7 @@ static int ath10k_htc_send_bundle_skbs(s
++ 		return 0;
++ 
++ 	bundles_left = ATH10K_MAX_MSG_PER_HTC_TX_BUNDLE * ep->tx_credit_size;
++-	bundle_skb = dev_alloc_skb(bundles_left);
+++	bundle_skb = netdev_alloc_skb_fast(NULL, bundles_left);
++ 
++ 	if (!bundle_skb)
++ 		return -ENOMEM;
++@@ -767,7 +767,7 @@ static int ath10k_htc_send_bundle_skbs(s
++ 
++ 			bundles_left =
++ 				ATH10K_MAX_MSG_PER_HTC_TX_BUNDLE * ep->tx_credit_size;
++-			bundle_skb = dev_alloc_skb(bundles_left);
+++			bundle_skb = netdev_alloc_skb_fast(NULL, bundles_left);
++ 
++ 			if (!bundle_skb) {
++ 				skb_queue_head(&ep->tx_req_head, skb);
++@@ -1178,7 +1178,7 @@ struct sk_buff *ath10k_htc_alloc_skb(str
++ {
++ 	struct sk_buff *skb;
++ 
++-	skb = dev_alloc_skb(size + sizeof(struct ath10k_htc_hdr));
+++	skb = netdev_alloc_skb_fast(NULL, size + sizeof(struct ath10k_htc_hdr));
++ 	if (!skb)
++ 		return NULL;
++ 
++--- a/drivers/net/wireless/ath/ath10k/htt_rx.c	2025-01-14 00:31:03.487752690 +0800
+++++ b/drivers/net/wireless/ath/ath10k/htt_rx.c	2025-01-14 00:37:26.333868824 +0800
++@@ -156,7 +156,7 @@ static int __ath10k_htt_rx_ring_fill_n(s
++ 	}
++ 
++ 	while (num > 0) {
++-		skb = dev_alloc_skb(HTT_RX_BUF_SIZE + HTT_RX_DESC_ALIGN);
+++		skb = netdev_alloc_skb_fast(NULL, HTT_RX_BUF_SIZE + HTT_RX_DESC_ALIGN);
++ 		if (!skb) {
++ 			ret = -ENOMEM;
++ 			goto fail;
++--- a/drivers/net/wireless/ath/ath10k/snoc.c	2025-01-14 00:31:03.488752677 +0800
+++++ b/drivers/net/wireless/ath/ath10k/snoc.c	2025-01-14 00:37:26.335868807 +0800
++@@ -497,7 +497,7 @@ static int __ath10k_snoc_rx_post_buf(str
++ 	dma_addr_t paddr;
++ 	int ret;
++ 
++-	skb = dev_alloc_skb(pipe->buf_sz);
+++	skb = netdev_alloc_skb_fast(NULL, pipe->buf_sz);
++ 	if (!skb)
++ 		return -ENOMEM;
++ 
+--- /dev/null	2025-01-10 21:27:25.721992006 +0800
++++ b/target/linux/ipq40xx/patches-6.6/713-netdev_alloc_skb_fast.patch	2025-01-16 23:09:37.784160260 +0800
+@@ -0,0 +1,11 @@
++--- a/drivers/net/ethernet/qualcomm/ipqess/ipqess.c	2025-01-16 22:32:05.041929303 +0800
+++++ b/drivers/net/ethernet/qualcomm/ipqess/ipqess.c	2025-01-16 23:08:21.958196542 +0800
++@@ -210,7 +210,7 @@ static int ipqess_rx_buf_alloc(struct ip
++ {
++ 	struct ipqess_buf *buf = &rx_ring->buf[rx_ring->head];
++ 
++-	buf->skb = netdev_alloc_skb_ip_align(rx_ring->ess->netdev,
+++	buf->skb = netdev_alloc_skb_fast(rx_ring->ess->netdev,
++ 					     IPQESS_RX_HEAD_BUFF_SIZE);
++ 
++ 	if (!buf->skb)

@@ -1,0 +1,23 @@
+--- a/dev/null
++++ b/target/linux/generic/hack-6.6/941-disable_debug_depends.patch
+@@ -0,0 +1,20 @@
++--- a/init/Kconfig	2024-10-04 15:26:53.471969132 +0800
+++++ b/init/Kconfig	2024-10-04 19:08:59.158734067 +0800
++@@ -1473,7 +1473,6 @@ config BPF
++ menuconfig EXPERT
++ 	bool "Configure standard kernel features (expert users)"
++ 	# Unhide debug options, to make the on-by-default options visible
++-	select DEBUG_KERNEL
++ 	help
++ 	  This option allows certain base kernel options and settings
++ 	  to be disabled or tweaked. This is for specialized
++--- a/lib/Kconfig.debug	2024-09-30 22:25:15.000000000 +0800
+++++ b/lib/Kconfig.debug	2024-10-04 21:41:52.465079931 +0800
++@@ -588,7 +588,6 @@ menu "Generic Kernel Debugging Instrumen
++ 
++ config MAGIC_SYSRQ
++ 	bool "Magic SysRq key"
++-	depends on !UML
++ 	help
++ 	  If you say Y here, you will have some control over the system even
++ 	  if the system crashes for example during kernel debugging (e.g., you
