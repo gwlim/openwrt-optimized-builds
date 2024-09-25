@@ -1,0 +1,29 @@
+--- /dev/null	2024-10-05 22:57:56.162999993 +0800
++++ ./package/kernel/ath10k-ct/patches/990-set-Konfig.patch	2024-10-06 04:02:26.697921749 +0800
+@@ -0,0 +1,26 @@
++--- a/ath10k-6.9/Kconfig	2024-10-06 02:46:45.487055131 +0800
+++++ b/ath10k-6.9/Kconfig	2024-10-06 04:01:02.282135362 +0800
++@@ -55,6 +55,7 @@ config ATH10K_SNOC
++ config ATH10K_DEBUG
++ 	bool "Atheros ath10k debugging"
++ 	depends on ATH10K
+++	default n
++ 	help
++ 	  Enables debug support
++ 
++@@ -86,13 +87,14 @@ config ATH10K_TRACING
++ 	bool "Atheros ath10k tracing support"
++ 	depends on ATH10K
++ 	depends on EVENT_TRACING
+++	default n
++ 	help
++ 	  Select this to ath10k use tracing infrastructure.
++ 
++ config ATH10K_DFS_CERTIFIED
++ 	bool "Atheros DFS support for certified platforms"
++ 	depends on ATH10K && CFG80211_CERTIFICATION_ONUS
++-	default n
+++	default y
++ 	help
++ 	This option enables DFS support for initiating radiation on
++ 	ath10k.
