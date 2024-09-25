@@ -1,0 +1,23 @@
+--- /dev/null
++++ b/target/linux/generic/hack-6.6/942-net-prefetch-skb-while-dequeuing-from-backlog-list.patch
+@@ -0,0 +1,20 @@
++--- a/net/core/dev.c	2024-11-02 23:49:51.054794996 +0800
+++++ b/net/core/dev.c	2024-11-04 16:37:10.475864522 +0800
++@@ -6046,10 +6046,16 @@ static int process_backlog(struct napi_s
++ 
++ 	napi->weight = READ_ONCE(dev_rx_weight);
++ 	while (again) {
++-		struct sk_buff *skb;
+++		struct sk_buff *skb, *next_skb;
++ 
++ 		while ((skb = __skb_dequeue(&sd->process_queue))) {
++ 			rcu_read_lock();
+++
+++			next_skb = skb_peek(&sd->process_queue);
+++			if (likely(next_skb)) {
+++				prefetch(next_skb->data);
+++			}
+++
++ 			__netif_receive_skb(skb);
++ 			rcu_read_unlock();
++ 			input_queue_head_incr(sd);
