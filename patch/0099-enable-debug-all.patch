@@ -1,0 +1,29 @@
+--- a/config/Config-kernel.in	2025-01-31 21:10:24.828720972 +0800
++++ b/config/Config-kernel.in	2025-01-31 21:06:25.489127086 +0800
+@@ -30,7 +30,7 @@ config KERNEL_SWAP
+ 
+ config KERNEL_PROC_STRIPPED
+ 	bool "Strip non-essential /proc functionality to reduce code size"
+-	default y
++	default n
+ 
+ config KERNEL_DEBUG_FS
+ 	bool "Compile the kernel with debug filesystem enabled"
+@@ -354,7 +354,7 @@ config KERNEL_PSI
+ 
+ config KERNEL_KALLSYMS
+ 	bool "Compile the kernel with symbol table information"
+-	default n
++	default y
+ 	help
+ 	  This will give you more information in stack traces from kernel oopses.
+ 
+@@ -438,7 +438,7 @@ config KERNEL_DEBUG_KERNEL
+ 
+ config KERNEL_DEBUG_INFO
+ 	bool "Compile the kernel with debug information"
+-	default n
++	default y
+ 	select KERNEL_DEBUG_KERNEL
+ 	help
+ 	  This will compile your kernel and modules with debug information.

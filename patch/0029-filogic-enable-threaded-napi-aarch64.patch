@@ -1,0 +1,22 @@
+diff --git a/target/linux/mediatek/patches-6.6/951-enable-threaded-napi.patch b/target/linux/mediatek/patches-6.6/951-enable-threaded-napi.patch
+new file mode 100644
+index 0000000..b00ff0f
+--- /dev/null
++++ b/target/linux/mediatek/patches-6.6/951-enable-threaded-napi.patch
+@@ -0,0 +1,16 @@
++--- a/drivers/net/ethernet/mediatek/mtk_eth_soc.c	2024-10-15 19:19:35.579356220 +0800
+++++ b/drivers/net/ethernet/mediatek/mtk_eth_soc.c	2024-10-15 19:26:19.868942881 +0800
++@@ -5296,10 +5296,12 @@ static int mtk_probe(struct platform_dev
++ 		if (err) {
++ 			dev_err(eth->dev, "error bringing up device\n");
++ 			goto err_deinit_ppe;
++-		} else
+++		} else {
++ 			netif_info(eth, probe, eth->netdev[i],
++ 				   "mediatek frame engine at 0x%08lx, irq %d\n",
++ 				   eth->netdev[i]->base_addr, eth->irq[0]);
+++			dev_set_threaded(eth->netdev[i], true);
+++		}
++ 	}
++ 
++ 	/* we run 2 devices on the same DMA ring so we need a dummy device
