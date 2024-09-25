@@ -1,0 +1,14 @@
+--- /dev/null	2024-10-02 22:58:28.720999890 +0800
++++ ./target/linux/generic/hack-6.6/940-reduce_max_console.patch	2024-10-03 01:12:33.879976952 +0800
+@@ -0,0 +1,11 @@
++--- a/kernel/printk/printk.c	2024-09-30 22:25:15.000000000 +0800
+++++ b/kernel/printk/printk.c	2024-10-03 01:10:13.312788935 +0800
++@@ -367,7 +367,7 @@ static int console_locked;
++  *	Array of consoles built from command line options (console=)
++  */
++ 
++-#define MAX_CMDLINECONSOLES 8
+++#define MAX_CMDLINECONSOLES 4
++ 
++ static struct console_cmdline console_cmdline[MAX_CMDLINECONSOLES];
++ 

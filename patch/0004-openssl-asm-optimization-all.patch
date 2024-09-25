@@ -1,0 +1,97 @@
+diff --git a/package/libs/openssl/Makefile b/package/libs/openssl/Makefile
+index 959424c..3ce550b 100644
+--- a/package/libs/openssl/Makefile
++++ b/package/libs/openssl/Makefile
+@@ -215,7 +215,7 @@ and https://openwrt.org/docs/techref/hardware/cryptographic.hardware.accelerator
+ The engine_id is "padlock"
+ endef
+ 
+-OPENSSL_OPTIONS:= shared no-tests
++OPENSSL_OPTIONS:= shared no-tests threads
+ 
+ ifndef CONFIG_OPENSSL_WITH_BLAKE2
+   OPENSSL_OPTIONS += no-blake2
+@@ -286,7 +286,7 @@ ifdef CONFIG_OPENSSL_NO_DEPRECATED
+ endif
+ 
+ ifeq ($(CONFIG_OPENSSL_OPTIMIZE_SPEED),y)
+-  TARGET_CFLAGS := $(filter-out -O%,$(TARGET_CFLAGS)) -O3
++  TARGET_CFLAGS := $(filter-out -O%,$(TARGET_CFLAGS)) -O2
+ endif
+ 
+ ifeq ($(CONFIG_OPENSSL_SMALL_FOOTPRINT),y)
+
+diff --git a/package/libs/openssl/Config.in b/package/libs/openssl/Config.in
+index 871080a..e440a4e 100644
+--- a/package/libs/openssl/Config.in
++++ b/package/libs/openssl/Config.in
+@@ -4,7 +4,7 @@ comment "Build Options"
+ 
+ config OPENSSL_OPTIMIZE_SPEED
+ 	bool
+-	default y if x86_64 || i386
++	default y
+ 	prompt "Enable optimization for speed instead of size"
+ 	select OPENSSL_WITH_ASM
+ 	help
+@@ -60,7 +60,7 @@ config OPENSSL_NO_DEPRECATED
+ 
+ config OPENSSL_WITH_ERROR_MESSAGES
+ 	bool
+-	default y if !OPENSSL_SMALL_FOOTPRINT || (!SMALL_FLASH && !LOW_MEMORY_FOOTPRINT)
++	default n
+ 	prompt "Include error messages"
+ 	help
+ 		This option aids debugging, but increases package size and
+@@ -167,7 +167,7 @@ config OPENSSL_WITH_CAMELLIA
+ 
+ config OPENSSL_WITH_IDEA
+ 	bool
+-	default y if !SMALL_FLASH
++	default n
+ 	prompt "Enable IDEA cipher support (needs legacy provider)"
+ 	help
+ 		IDEA is a block cipher with 128-bit keys.
+@@ -177,7 +177,7 @@ config OPENSSL_WITH_IDEA
+ 
+ config OPENSSL_WITH_SEED
+ 	bool
+-	default y if !SMALL_FLASH
++	default n
+ 	prompt "Enable SEED cipher support (needs legacy provider)"
+ 	help
+ 		SEED is a block cipher with 128-bit keys broadly used in
+@@ -189,6 +189,7 @@ config OPENSSL_WITH_SEED
+ config OPENSSL_WITH_SM234
+ 	bool
+ 	prompt "Enable SM2/3/4 algorithms support"
++	default n
+ 	help
+ 		These algorithms are a set of "Commercial Cryptography"
+ 		algorithms approved for use in China.
+@@ -205,7 +206,7 @@ config OPENSSL_WITH_BLAKE2
+ 
+ config OPENSSL_WITH_MDC2
+ 	bool
+-	default y if !SMALL_FLASH
++	default n
+ 	prompt "Enable MDC2 digest support (needs legacy provider)"
+ 	help
+ 		To use the digest, one must install the libopenssl-legacy
+@@ -214,7 +215,7 @@ config OPENSSL_WITH_MDC2
+ 
+ config OPENSSL_WITH_WHIRLPOOL
+ 	bool
+-	default y if !SMALL_FLASH
++	default n
+ 	prompt "Enable Whirlpool digest support (needs legacy provider)"
+ 	help
+ 		To use the digest, one must install the libopenssl-legacy
+@@ -279,6 +280,7 @@ config OPENSSL_ENGINE_BUILTIN_AFALG
+ 
+ config OPENSSL_ENGINE_BUILTIN_DEVCRYPTO
+ 	bool
++	default y
+ 	prompt "Acceleration support through /dev/crypto"
+ 	depends on OPENSSL_ENGINE_BUILTIN
+ 	select PACKAGE_libopenssl-conf
