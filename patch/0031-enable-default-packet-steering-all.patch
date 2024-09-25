@@ -1,0 +1,12 @@
+diff --git a/package/base-files/files/etc/uci-defaults/12_network-generate-ula b/package/base-files/files/etc/uci-defaults/12_network-generate-ula
+index 060d0ef..bcac178 100644
+--- a/package/base-files/files/etc/uci-defaults/12_network-generate-ula
++++ b/package/base-files/files/etc/uci-defaults/12_network-generate-ula
+@@ -2,6 +2,7 @@
+ 
+ uci -q batch <<-EOF >/dev/null
+ 	set network.globals.ula_prefix="$(hexdump -vn 5 -e '"fd" 1/1 "%02x:" 2/2 "%x:"' /dev/urandom):/48"
++	set network.globals.packet_steering=2
+ 	commit network
+ EOF
+ 

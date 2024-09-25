@@ -1,0 +1,43 @@
+--- /dev/null	2025-01-10 21:27:25.721992006 +0800
++++ b/target/linux/ath79/patches-6.6/913-nap-complete-rx-done.patch	2025-01-18 13:27:41.180636615 +0800
+@@ -0,0 +1,40 @@
++--- a/drivers/net/ethernet/atheros/ag71xx/ag71xx_main.c	2025-01-18 12:53:04.366732262 +0800
+++++ b/drivers/net/ethernet/atheros/ag71xx/ag71xx_main.c	2025-01-18 13:25:20.548729964 +0800
++@@ -1406,7 +1406,7 @@ static int ag71xx_poll(struct napi_struc
++ 		DBG("%s: disable polling mode, rx=%d, tx=%d,limit=%d\n",
++ 			dev->name, rx_done, tx_done, limit);
++ 
++-		napi_complete(napi);
+++		napi_complete_done(napi,rx_done);
++ 
++ 		/* enable interrupts */
++ 		spin_lock_irqsave(&ag->lock, flags);
++@@ -1425,7 +1425,7 @@ oom:
++ 		pr_info("%s: out of memory\n", dev->name);
++ 
++ 	mod_timer(&ag->oom_timer, jiffies + AG71XX_OOM_REFILL);
++-	napi_complete(napi);
+++	napi_complete_done(napi,rx_done);
++ 	return 0;
++ }
++ 
++--- a/drivers/net/ethernet/atheros/ag71xx.c	2025-01-18 12:53:04.367732261 +0800
+++++ b/drivers/net/ethernet/atheros/ag71xx.c	2025-01-18 13:25:47.870713692 +0800
++@@ -1733,7 +1733,7 @@ static int ag71xx_poll(struct napi_struc
++ 		netif_dbg(ag, rx_status, ndev, "disable polling mode, rx=%d, tx=%d,limit=%d\n",
++ 			  rx_done, tx_done, limit);
++ 
++-		napi_complete(napi);
+++		napi_complete_done(napi,rx_done);
++ 
++ 		/* enable interrupts */
++ 		ag71xx_int_enable(ag, AG71XX_INT_POLL);
++@@ -1749,7 +1749,7 @@ oom:
++ 	netif_err(ag, rx_err, ndev, "out of memory\n");
++ 
++ 	mod_timer(&ag->oom_timer, jiffies + AG71XX_OOM_REFILL);
++-	napi_complete(napi);
+++	napi_complete_done(napi,rx_done);
++ 	return 0;
++ }
++ 

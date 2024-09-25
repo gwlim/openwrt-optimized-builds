@@ -1,0 +1,14 @@
+--- /dev/null	2025-01-10 21:27:25.721992006 +0800
++++ b/package/kernel/mt76/patches/0001-cachline-aligned.patch	2025-01-19 21:29:46.627684471 +0800
+@@ -0,0 +1,11 @@
++--- a/mt76.h	2025-01-14 20:45:25.000000000 +0800
+++++ b/mt76.h	2025-01-19 19:29:34.240836326 +0800
++@@ -234,7 +234,7 @@ struct mt76_queue {
++ 	dma_addr_t desc_dma;
++ 	struct sk_buff *rx_head;
++ 	struct page_pool *page_pool;
++-};
+++} ____cacheline_aligned;
++ 
++ struct mt76_mcu_ops {
++ 	unsigned int max_retry;

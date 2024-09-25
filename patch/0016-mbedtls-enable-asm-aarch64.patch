@@ -1,0 +1,27 @@
+diff --git a/package/libs/mbedtls/Config.in b/package/libs/mbedtls/Config.in
+index 51f8bcb..990310b 100644
+--- a/package/libs/mbedtls/Config.in
++++ b/package/libs/mbedtls/Config.in
+@@ -148,6 +148,10 @@ config MBEDTLS_DEBUG_C
+ 	bool "MBEDTLS_DEBUG_C"
+ 	default n
+ 
++config MBEDTLS_HAVE_ASM
++	bool "MBEDTLS_HAVE_ASM"
++	default y
++
+ config MBEDTLS_HKDF_C
+ 	bool "MBEDTLS_HKDF_C"
+ 	default n
+diff --git a/package/libs/mbedtls/Makefile b/package/libs/mbedtls/Makefile
+index 19d8c27..5e331c3 100644
+--- a/package/libs/mbedtls/Makefile
++++ b/package/libs/mbedtls/Makefile
+@@ -66,6 +66,7 @@ MBEDTLS_BUILD_OPTS= \
+   CONFIG_MBEDTLS_CIPHER_MODE_XTS \
+   CONFIG_MBEDTLS_DEBUG_C \
+   CONFIG_MBEDTLS_ENTROPY_FORCE_SHA256 \
++  CONFIG_MBEDTLS_HAVE_ASM \
+   CONFIG_MBEDTLS_HKDF_C \
+   CONFIG_MBEDTLS_PLATFORM_C \
+   CONFIG_MBEDTLS_SELF_TEST \

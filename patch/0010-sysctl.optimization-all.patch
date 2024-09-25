@@ -1,0 +1,29 @@
+diff --git a/package/kernel/linux/files/sysctl-nf-conntrack.conf b/package/kernel/linux/files/sysctl-nf-conntrack.conf
+index c6a0ef3..add70dd 100644
+--- a/package/kernel/linux/files/sysctl-nf-conntrack.conf
++++ b/package/kernel/linux/files/sysctl-nf-conntrack.conf
+@@ -4,5 +4,5 @@
+ net.netfilter.nf_conntrack_acct=1
+ net.netfilter.nf_conntrack_checksum=0
+ net.netfilter.nf_conntrack_tcp_timeout_established=7440
+-net.netfilter.nf_conntrack_udp_timeout=60
+-net.netfilter.nf_conntrack_udp_timeout_stream=180
++net.netfilter.nf_conntrack_udp_timeout=10
++net.netfilter.nf_conntrack_udp_timeout_stream=60
+diff --git a/package/base-files/files/etc/sysctl.d/10-default.conf b/package/base-files/files/etc/sysctl.d/10-default.conf
+index ee7df2b..e9c33f3 100644
+--- a/package/base-files/files/etc/sysctl.d/10-default.conf
++++ b/package/base-files/files/etc/sysctl.d/10-default.conf
+@@ -23,6 +23,12 @@ net.ipv4.tcp_syncookies=1
+ net.ipv4.tcp_timestamps=1
+ net.ipv4.tcp_sack=1
+ net.ipv4.tcp_dsack=1
++net.ipv4.tcp_slow_start_after_idle=0
++net.ipv4.conf.all.rp_filter=1
++net.ipv4.tcp_fastopen=3
+ 
+ net.ipv6.conf.default.forwarding=1
+ net.ipv6.conf.all.forwarding=1
++# Uncomment to enable ipv6 privacy mode
++#net.ipv6.conf.all.use_tempaddr=2
++#net.ipv6.conf.default.use_tempaddr=2
