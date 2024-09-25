@@ -1,0 +1,47 @@
+--- a/package/kernel/shortcut-fe/fast-classifier/Makefile	2025-01-04 22:40:30.301782218 +0800
++++ b/package/kernel/shortcut-fe/fast-classifier/Makefile	2025-01-04 22:14:56.061967255 +0800
+@@ -53,7 +53,7 @@ define Build/Compile/kmod
+ 		$(PKG_MAKE_FLAGS) \
+ 		M="$(PKG_BUILD_DIR)" \
+ 		CONFIG_FAST_CLASSIFIER=m \
+-		EXTRA_CFLAGS+="-DSFE_SUPPORT_IPV6" \
++		EXTRA_CFLAGS+="-DSFE_SUPPORT_IPV6 -DSFE_IPV4_UNALIGNED_IP_HEADER -DSFE_IPV6_UNALIGNED_IP_HEADER" \
+ 		modules
+ endef
+ 
+--- a/package/kernel/shortcut-fe/shortcut-fe/Makefile	2025-01-04 22:40:16.029791196 +0800
++++ b/package/kernel/shortcut-fe/shortcut-fe/Makefile	2025-01-04 21:12:41.101537031 +0800
+@@ -69,7 +69,7 @@ define Build/Compile
+ 		$(KERNEL_MAKE_FLAGS) \
+ 		$(PKG_MAKE_FLAGS) \
+ 		M="$(PKG_BUILD_DIR)" \
+-		EXTRA_CFLAGS+="-DSFE_SUPPORT_IPV6" \
++		EXTRA_CFLAGS+="-DSFE_SUPPORT_IPV6 -DSFE_IPV4_UNALIGNED_IP_HEADER -DSFE_IPV6_UNALIGNED_IP_HEADER" \
+ 		SFE_SUPPORT_IPV6=y \
+ 		modules
+ endef
+--- /dev/null	2025-01-03 22:52:54.605999991 +0800
++++ b/package/kernel/shortcut-fe/shortcut-fe/patches/0005-set-packed_aligned.patch	2025-01-05 06:19:09.509046787 +0800
+@@ -0,0 +1,22 @@
++--- a/sfe_ipv4.c	2025-01-05 06:14:25.177054521 +0800
+++++ b/sfe_ipv4.c	2025-01-05 06:17:36.575383056 +0800
++@@ -38,7 +38,7 @@
++  */
++ 
++ #ifdef SFE_IPV4_UNALIGNED_IP_HEADER
++-#define SFE_IPV4_UNALIGNED_STRUCT __attribute__((packed))
+++#define SFE_IPV4_UNALIGNED_STRUCT __attribute__((packed, aligned(2)))
++ #else
++ #define SFE_IPV4_UNALIGNED_STRUCT
++ #endif
++--- a/sfe_ipv6.c	2025-01-05 06:14:25.178054518 +0800
+++++ b/sfe_ipv6.c	2025-01-05 06:17:49.095338092 +0800
++@@ -38,7 +38,7 @@
++  */
++ 
++ #ifdef SFE_IPV6_UNALIGNED_IP_HEADER
++-#define SFE_IPV6_UNALIGNED_STRUCT __attribute__((packed))
+++#define SFE_IPV6_UNALIGNED_STRUCT __attribute__((packed, aligned(2)))
++ #else
++ #define SFE_IPV6_UNALIGNED_STRUCT
++ #endif

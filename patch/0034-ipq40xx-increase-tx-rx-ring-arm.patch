@@ -1,0 +1,20 @@
+diff --git a/target/linux/ipq40xx/patches-6.6/712-increase-tx-rx-ring.patch b/target/linux/ipq40xx/patches-6.6/712-increase-tx-rx-ring.patch
+new file mode 100644
+index 0000000..c9922e9
+--- /dev/null
++++ b/target/linux/ipq40xx/patches-6.6/712-increase-tx-rx-ring.patch
+@@ -0,0 +1,14 @@
++--- a/drivers/net/ethernet/qualcomm/ipqess/ipqess.h	2024-10-26 19:51:45.337653651 +0800
+++++ b/drivers/net/ethernet/qualcomm/ipqess/ipqess.h	2024-10-26 20:32:53.224117750 +0800
++@@ -22,9 +22,9 @@
++ 
++ #define IPQESS_TPD_FROM_CPU_SHIFT 25
++ 
++-#define IPQESS_RX_RING_SIZE 128
+++#define IPQESS_RX_RING_SIZE 256
++ #define IPQESS_RX_HEAD_BUFF_SIZE 1540
++-#define IPQESS_TX_RING_SIZE 128
+++#define IPQESS_TX_RING_SIZE 256
++ #define IPQESS_MAX_RX_QUEUE 8
++ #define IPQESS_MAX_TX_QUEUE 16
++ 
