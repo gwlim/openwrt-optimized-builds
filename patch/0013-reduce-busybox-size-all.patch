@@ -1,0 +1,56 @@
+diff --git a/package/utils/busybox/Config-defaults.in b/package/utils/busybox/Config-defaults.in
+index f88f395..e69e69d 100644
+--- a/package/utils/busybox/Config-defaults.in
++++ b/package/utils/busybox/Config-defaults.in
+@@ -18,10 +18,10 @@ config BUSYBOX_DEFAULT_LONG_OPTS
+ 	default y
+ config BUSYBOX_DEFAULT_SHOW_USAGE
+ 	bool
+-	default y
++	default n
+ config BUSYBOX_DEFAULT_FEATURE_VERBOSE_USAGE
+ 	bool
+-	default y
++	default n
+ config BUSYBOX_DEFAULT_FEATURE_COMPRESS_USAGE
+ 	bool
+ 	default n
+@@ -1273,7 +1273,7 @@ config BUSYBOX_DEFAULT_HALT
+ 	default y
+ config BUSYBOX_DEFAULT_POWEROFF
+ 	bool
+-	default y
++	default n
+ config BUSYBOX_DEFAULT_REBOOT
+ 	bool
+ 	default y
+@@ -1702,7 +1702,7 @@ config BUSYBOX_DEFAULT_MKFS_VFAT
+ 	default n
+ config BUSYBOX_DEFAULT_MKSWAP
+ 	bool
+-	default y
++	default n
+ config BUSYBOX_DEFAULT_FEATURE_MKSWAP_UUID
+ 	bool
+ 	default n
+@@ -1804,16 +1804,16 @@ config BUSYBOX_DEFAULT_SETSID
+ 	default y
+ config BUSYBOX_DEFAULT_SWAPON
+ 	bool
+-	default y
++	default n
+ config BUSYBOX_DEFAULT_FEATURE_SWAPON_DISCARD
+ 	bool
+-	default y
++	default n
+ config BUSYBOX_DEFAULT_FEATURE_SWAPON_PRI
+ 	bool
+-	default y
++	default n
+ config BUSYBOX_DEFAULT_SWAPOFF
+ 	bool
+-	default y
++	default n
+ config BUSYBOX_DEFAULT_FEATURE_SWAPONOFF_LABEL
+ 	bool
+ 	default n

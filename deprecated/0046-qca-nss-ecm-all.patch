@@ -1,0 +1,14 @@
+--- /dev/null	2024-12-26 00:11:56.425999992 +0800
++++ b/package/kernel/qca-nss-ecm/patches/0022-accel_delay_pkts.patch	2024-12-31 10:33:01.376457279 +0800
+@@ -0,0 +1,11 @@
++--- a/ecm_classifier.c	2024-12-02 15:24:51.000000000 +0800
+++++ b/ecm_classifier.c	2024-12-31 10:31:34.096558862 +0800
++@@ -75,7 +75,7 @@
++  *  1 - Acceleration will not start until both direction traffic is seen.
++  *  N - Acceleration will not start until N packets are seen in the slow path.
++  */
++-int ecm_classifier_accel_delay_pkts = 0;
+++int ecm_classifier_accel_delay_pkts = 1;
++ 
++ /*
++  * ecm_classifier_assign_classifier()

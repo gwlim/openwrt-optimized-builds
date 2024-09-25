@@ -1,0 +1,30 @@
+diff --git a/package/network/services/dropbear/Config.in b/package/network/services/dropbear/Config.in
+index 0d012b2..4391de6 100644
+--- a/package/network/services/dropbear/Config.in
++++ b/package/network/services/dropbear/Config.in
+@@ -130,7 +130,7 @@ config DROPBEAR_ASKPASS
+ 
+ config DROPBEAR_DBCLIENT_AGENTFORWARD
+ 	bool "Enable agent forwarding in dbclient [LEGACY/SECURITY]"
+-	default y
++	default n
+ 	depends on DROPBEAR_DBCLIENT
+ 	help
+ 		Increases binary size by about 0.1 kB (MIPS).
+@@ -155,7 +155,7 @@ config DROPBEAR_SCP
+ 
+ config DROPBEAR_AGENTFORWARD
+ 	bool "Enable agent forwarding [LEGACY/SECURITY]"
+-	default y
++	default n
+ 	help
+ 		Increases binary size by about 0.1 kB (MIPS).
+ 
+@@ -178,6 +178,7 @@ config DROPBEAR_MODERN_ONLY
+ 	select DROPBEAR_ED25519
+ 	select DROPBEAR_CURVE25519
+ 	select DROPBEAR_CHACHA20POLY1305
++	default y
+ 	help
+ 		This option enables:
+ 		 - Chacha20-Poly1305
