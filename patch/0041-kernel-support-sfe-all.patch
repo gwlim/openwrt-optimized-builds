@@ -1,0 +1,946 @@
+--- /dev/null	2024-12-26 00:11:56.425999992 +0800
++++ b/target/linux/generic/hack-6.6/960085-OpenWRT-644-bridge_optimize_netfilter_hooks.patch.patch	2024-12-31 22:40:52.966873771 +0800
+@@ -0,0 +1,198 @@
++From c9e8cfc5a7e5d2ded5e9934272af7b9b453183f1 Mon Sep 17 00:00:00 2001
++From: Murat Sezgin <msezgin@codeaurora.org>
++Date: Mon, 8 May 2017 11:49:21 -0700
++Subject: [PATCH 171/500] OpenWRT: 644-bridge_optimize_netfilter_hooks.patch
++
++This patch applies the following upstreamed
++openwrt patch from 3.14 kernel.
++
++commit 76b37c24252b (OpenWrt: apply 644-bridge_optimize_netfilter_hooks.patch)
++
++Change-Id: I4dde201c34717321115c9c067dc10d0b38d6eee6
++Signed-off-by: Murat Sezgin <msezgin@codeaurora.org>
++(cherry picked from commit a647c9cf03fd82ce5e090891e5ffa68e22dcf88d)
++---
++ net/bridge/br_forward.c         |  4 ++--
++ net/bridge/br_input.c           |  6 +++---
++ net/bridge/br_multicast.c       |  2 +-
++ net/bridge/br_netfilter_hooks.c | 17 +++++++++++++++++
++ net/bridge/br_private.h         | 14 ++++++++++++++
++ net/bridge/br_stp_bpdu.c        |  2 +-
++ 6 files changed, 38 insertions(+), 7 deletions(-)
++
++diff --git a/net/bridge/br_forward.c b/net/bridge/br_forward.c
++index d485af1454f5..30a1eda608e2 100644
++--- a/net/bridge/br_forward.c
+++++ b/net/bridge/br_forward.c
++@@ -63,7 +63,7 @@ EXPORT_SYMBOL_GPL(br_dev_queue_push_xmit);
++ int br_forward_finish(struct net *net, struct sock *sk, struct sk_buff *skb)
++ {
++ 	skb_clear_tstamp(skb);
++-	return NF_HOOK(NFPROTO_BRIDGE, NF_BR_POST_ROUTING,
+++	return BR_HOOK(NFPROTO_BRIDGE, NF_BR_POST_ROUTING,
++ 		       net, sk, skb, NULL, skb->dev,
++ 		       br_dev_queue_push_xmit);
++ 
++@@ -112,7 +112,7 @@ static void __br_forward(const struct net_bridge_port *to,
++ 		indev = NULL;
++ 	}
++ 
++-	NF_HOOK(NFPROTO_BRIDGE, br_hook,
+++	BR_HOOK(NFPROTO_BRIDGE, br_hook,
++ 		net, NULL, skb, indev, skb->dev,
++ 		br_forward_finish);
++ }
++diff --git a/net/bridge/br_input.c b/net/bridge/br_input.c
++index e0626fd6c690..2ff896f6cf39 100644
++--- a/net/bridge/br_input.c
+++++ b/net/bridge/br_input.c
++@@ -65,7 +65,7 @@ static int br_pass_frame_up(struct sk_buff *skb)
++ 	br_multicast_count(br, NULL, skb, br_multicast_igmp_type(skb),
++ 			   BR_MCAST_DIR_TX);
++ 
++-	return NF_HOOK(NFPROTO_BRIDGE, NF_BR_LOCAL_IN,
+++	return BR_HOOK(NFPROTO_BRIDGE, NF_BR_LOCAL_IN,
++ 		       dev_net(indev), NULL, skb, indev, NULL,
++ 		       br_netif_receive_skb);
++ }
++@@ -396,7 +396,7 @@ static rx_handler_result_t br_handle_frame(struct sk_buff **pskb)
++ 		 *   - returns = 0 (stolen/nf_queue)
++ 		 * Thus return 1 from the okfn() to signal the skb is ok to pass
++ 		 */
++-		if (NF_HOOK(NFPROTO_BRIDGE, NF_BR_LOCAL_IN,
+++		if (BR_HOOK(NFPROTO_BRIDGE, NF_BR_LOCAL_IN,
++ 			    dev_net(skb->dev), NULL, skb, skb->dev, NULL,
++ 			    br_handle_local_finish) == 1) {
++ 			return RX_HANDLER_PASS;
++@@ -417,7 +417,7 @@ static rx_handler_result_t br_handle_frame(struct sk_buff **pskb)
++ 		if (ether_addr_equal(p->br->dev->dev_addr, dest))
++ 			skb->pkt_type = PACKET_HOST;
++ 
++-		if (NF_HOOK(NFPROTO_BRIDGE, NF_BR_PRE_ROUTING,
+++		if (BR_HOOK(NFPROTO_BRIDGE, NF_BR_PRE_ROUTING,
++ 			dev_net(skb->dev), NULL, skb, skb->dev, NULL,
++ 			br_handle_local_finish) == 1) {
++ 			return RX_HANDLER_PASS;
++diff --git a/net/bridge/br_multicast.c b/net/bridge/br_multicast.c
++index 96d1fc78dd39..86e80c67a4ee 100644
++--- a/net/bridge/br_multicast.c
+++++ b/net/bridge/br_multicast.c
++@@ -1801,7 +1801,7 @@ static void __br_multicast_send_query(struct net_bridge_mcast *brmctx,
++ 		skb->dev = pmctx->port->dev;
++ 		br_multicast_count(brmctx->br, pmctx->port, skb, igmp_type,
++ 				   BR_MCAST_DIR_TX);
++-		NF_HOOK(NFPROTO_BRIDGE, NF_BR_LOCAL_OUT,
+++		BR_HOOK(NFPROTO_BRIDGE, NF_BR_LOCAL_OUT,
++ 			dev_net(pmctx->port->dev), NULL, skb, NULL, skb->dev,
++ 			br_dev_queue_push_xmit);
++ 
++diff --git a/net/bridge/br_netfilter_hooks.c b/net/bridge/br_netfilter_hooks.c
++index 033034d68f1f..ff606944d82f 100644
++--- a/net/bridge/br_netfilter_hooks.c
+++++ b/net/bridge/br_netfilter_hooks.c
++@@ -56,6 +56,7 @@ struct brnf_net {
++ 	int call_iptables;
++ 	int call_ip6tables;
++ 	int call_arptables;
+++	int call_ebtables;
++ 
++ 	/* default value is 0 */
++ 	int filter_vlan_tagged;
++@@ -72,6 +73,14 @@ struct brnf_net {
++ #define IS_ARP(skb) \
++ 	(!skb_vlan_tag_present(skb) && skb->protocol == htons(ETH_P_ARP))
++ 
+++bool br_netfilter_run_hooks(struct net *net)
+++{
+++	struct brnf_net *brnf = net_generic(net, brnf_net_id);
+++
+++	return brnf->call_iptables | brnf->call_ip6tables | brnf->call_arptables |
+++		brnf->call_ebtables;
+++}
+++
++ static inline __be16 vlan_proto(const struct sk_buff *skb)
++ {
++ 	if (skb_vlan_tag_present(skb))
++@@ -1101,6 +1110,12 @@ static struct ctl_table brnf_table[] = {
++ 		.mode		= 0644,
++ 		.proc_handler	= brnf_sysctl_call_tables,
++ 	},
+++	{
+++		.procname       = "bridge-nf-call-ebtables",
+++		.maxlen         = sizeof(int),
+++		.mode           = 0644,
+++		.proc_handler   = brnf_sysctl_call_tables,
+++	},
++ 	{ }
++ };
++ 
++@@ -1109,6 +1124,7 @@ static inline void br_netfilter_sysctl_default(struct brnf_net *brnf)
++ 	brnf->call_iptables = 1;
++ 	brnf->call_ip6tables = 1;
++ 	brnf->call_arptables = 1;
+++	brnf->call_ebtables = 1;
++ 	brnf->filter_vlan_tagged = 0;
++ 	brnf->filter_pppoe_tagged = 0;
++ 	brnf->pass_vlan_indev = 0;
++@@ -1132,6 +1148,7 @@ static int br_netfilter_sysctl_init_net(struct net *net)
++ 	table[3].data = &brnet->filter_vlan_tagged;
++ 	table[4].data = &brnet->filter_pppoe_tagged;
++ 	table[5].data = &brnet->pass_vlan_indev;
+++	table[6].data = &brnet->call_ebtables;
++ 
++ 	br_netfilter_sysctl_default(brnet);
++ 
++diff --git a/net/bridge/br_private.h b/net/bridge/br_private.h
++index a1f4acfa6994..6e1f4cfc64b0 100644
++--- a/net/bridge/br_private.h
+++++ b/net/bridge/br_private.h
++@@ -19,6 +19,7 @@
++ #include <linux/if_vlan.h>
++ #include <linux/rhashtable.h>
++ #include <linux/refcount.h>
+++#include <linux/netfilter.h>
++ 
++ #define BR_HASH_BITS 8
++ #define BR_HASH_SIZE (1 << BR_HASH_BITS)
++@@ -1930,12 +1931,25 @@ extern const struct nf_br_ops __rcu *nf_br_ops;
++ int br_nf_core_init(void);
++ void br_nf_core_fini(void);
++ void br_netfilter_rtable_init(struct net_bridge *);
+++bool br_netfilter_run_hooks(struct net *net);
++ #else
++ static inline int br_nf_core_init(void) { return 0; }
++ static inline void br_nf_core_fini(void) {}
++ #define br_netfilter_rtable_init(x)
+++static inline bool br_netfilter_run_hooks(struct net *net) { return false; }
++ #endif
++ 
+++static inline int
+++BR_HOOK(uint8_t pf, unsigned int hook, struct net *net, struct sock *sk,
+++	struct sk_buff *skb, struct net_device *in, struct net_device *out,
+++	int (*okfn)(struct net *, struct sock *, struct sk_buff *))
+++{
+++	if (!br_netfilter_run_hooks(net))
+++		return okfn(net, sk, skb);
+++
+++	return NF_HOOK(pf, hook, net, sk, skb, in, out, okfn);
+++}
+++
++ /* br_stp.c */
++ void br_set_state(struct net_bridge_port *p, unsigned int state);
++ struct net_bridge_port *br_get_port(struct net_bridge *br, u16 port_no);
++diff --git a/net/bridge/br_stp_bpdu.c b/net/bridge/br_stp_bpdu.c
++index 9d2a235260eb..8d954196ff8e 100644
++--- a/net/bridge/br_stp_bpdu.c
+++++ b/net/bridge/br_stp_bpdu.c
++@@ -56,7 +56,7 @@ static void br_send_bpdu(struct net_bridge_port *p,
++ 
++ 	skb_reset_mac_header(skb);
++ 
++-	NF_HOOK(NFPROTO_BRIDGE, NF_BR_LOCAL_OUT,
+++	BR_HOOK(NFPROTO_BRIDGE, NF_BR_LOCAL_OUT,
++ 		dev_net(p->dev), NULL, skb, NULL, skb->dev,
++ 		br_send_bpdu_finish);
++ }
++-- 
++2.34.1
++
+--- /dev/null	2024-12-26 00:11:56.425999992 +0800
++++ b/target/linux/generic/hack-6.6/960179-bridge-Add-new-bridge-APIs-needed-for-network-HW-acc.patch	2024-12-31 22:40:52.966873771 +0800
+@@ -0,0 +1,161 @@
++From 6447fffde1be8235684aaa6b94e016e9c18f7776 Mon Sep 17 00:00:00 2001
++From: Murat Sezgin <quic_msezgin@quicinc.com>
++Date: Wed, 10 May 2023 13:15:19 -0700
++Subject: [PATCH 212/500] bridge: Add new bridge APIs needed for network HW
++ acceleration
++
++Bridge acceleration hardware needs to perform certain operations,
++ currently unsupported by the existing bridge code:
++ *given a certain bridge device and a MAC@, figure out on
++  which underlying slave port this MAC@ is located
++ *trigger an FDB entry refresh from outside the bridge code: packets will
++  not be seen anymore in the host, once a flow has been accelerated.
++  So the hardware accelerator driver needs to keep track of the accelerated
++  flows and refresh the MACs accordingly.
++ *update bridge interface statistics from outside the bridge code:
++  once acceleration is enabled on a connection, packets will not flow
++  through the host CPU, so we need the hardware accelerator driver to
++  maintain the statistics on the host and update them and add whatever
++  flows through the hardware.
++ These change adds the corresponding functions, and make it available
++ to other through EXPORT_SYMBOLS().
++
++Change-Id: I67afb325796004053897d9916e2df91827b65139
++Signed-off-by: Murat Sezgin <msezgin@codeaurora.org>
++
++net: bridge: Rework APIs added for network HW acceleration
++
++This change is to rework the bridge APIs based on the feedback from the
++chromium community
++
++Change-Id: I92a65f1eb26c6700d871f9deb40bccf302cf18eb
++Signed-off-by: Murat Sezgin <msezgin@codeaurora.org>
++Signed-off-by: Murat Sezgin <quic_msezgin@quicinc.com>
++---
++ include/linux/if_bridge.h |  8 ++++++
++ net/bridge/br_fdb.c       | 38 ++++++++++++++++++++++++++++
++ net/bridge/br_if.c        | 52 +++++++++++++++++++++++++++++++++++++++
++ 3 files changed, 98 insertions(+)
++
++--- a/include/linux/if_bridge.h
+++++ b/include/linux/if_bridge.h
++@@ -71,6 +71,14 @@ void brioctl_set(int (*hook)(struct net
++ 			     void __user *uarg));
++ int br_ioctl_call(struct net *net, struct net_bridge *br, unsigned int cmd,
++ 		  struct ifreq *ifr, void __user *uarg);
+++extern struct net_device *br_port_dev_get(struct net_device *dev,
+++					  unsigned char *addr);
+++extern void br_refresh_fdb_entry(struct net_device *dev, const char *addr);
+++extern void br_dev_update_stats(struct net_device *dev,
+++				struct rtnl_link_stats64 *nlstats);
+++extern struct net_bridge_fdb_entry *br_fdb_has_entry(struct net_device *dev,
+++						     const char *addr,
+++						     __u16 vid);
++ 
++ #if IS_ENABLED(CONFIG_BRIDGE) && IS_ENABLED(CONFIG_BRIDGE_IGMP_SNOOPING)
++ int br_multicast_list_adjacent(struct net_device *dev,
++--- a/net/bridge/br_fdb.c
+++++ b/net/bridge/br_fdb.c
++@@ -914,6 +914,44 @@ void br_fdb_update(struct net_bridge *br
++ 	}
++ }
++ 
+++/* Refresh FDB entries for bridge packets being forwarded by offload engines */
+++void br_refresh_fdb_entry(struct net_device *dev, const char *addr)
+++{
+++	struct net_bridge_port *p = br_port_get_rcu(dev);
+++
+++	if (!p || p->state == BR_STATE_DISABLED)
+++		return;
+++
+++	if (!is_valid_ether_addr(addr)) {
+++		pr_info("bridge: Attempt to refresh with invalid ether address %pM\n",
+++			addr);
+++		return;
+++	}
+++
+++	rcu_read_lock();
+++	br_fdb_update(p->br, p, addr, 0, true);
+++	rcu_read_unlock();
+++}
+++EXPORT_SYMBOL_GPL(br_refresh_fdb_entry);
+++
+++/* Look up the MAC address in the device's bridge fdb table */
+++struct net_bridge_fdb_entry *br_fdb_has_entry(struct net_device *dev,
+++					      const char *addr, __u16 vid)
+++{
+++	struct net_bridge_port *p = br_port_get_rcu(dev);
+++	struct net_bridge_fdb_entry *fdb;
+++
+++	if (!p || p->state == BR_STATE_DISABLED)
+++		return NULL;
+++
+++	rcu_read_lock();
+++	fdb = fdb_find_rcu(&p->br->fdb_hash_tbl, addr, vid);
+++	rcu_read_unlock();
+++
+++	return fdb;
+++}
+++EXPORT_SYMBOL_GPL(br_fdb_has_entry);
+++
++ /* Dump information about entries, in response to GETNEIGH */
++ int br_fdb_dump(struct sk_buff *skb,
++ 		struct netlink_callback *cb,
++--- a/net/bridge/br_if.c
+++++ b/net/bridge/br_if.c
++@@ -778,3 +778,55 @@ bool br_port_flag_is_set(const struct ne
++ 	return p->flags & flag;
++ }
++ EXPORT_SYMBOL_GPL(br_port_flag_is_set);
+++
+++/* br_port_dev_get()
+++ *      Using the given addr, identify the port to which it is reachable,
+++ *      returing a reference to the net device associated with that port.
+++ *
+++ * NOTE: Return NULL if given dev is not a bridge or the mac has no
+++ * associated port.
+++ */
+++struct net_device *br_port_dev_get(struct net_device *dev, unsigned char *addr)
+++{
+++	struct net_bridge_fdb_entry *fdbe;
+++	struct net_bridge *br;
+++	struct net_device *netdev = NULL;
+++
+++	/* Is this a bridge? */
+++	if (!(dev->priv_flags & IFF_EBRIDGE))
+++		return NULL;
+++
+++	br = netdev_priv(dev);
+++
+++	/* Lookup the fdb entry and get reference to the port dev */
+++	rcu_read_lock();
+++	fdbe = br_fdb_find_rcu(br, addr, 0);
+++	if (fdbe && fdbe->dst) {
+++		netdev = fdbe->dst->dev; /* port device */
+++		dev_hold(netdev);
+++	}
+++	rcu_read_unlock();
+++	return netdev;
+++}
+++EXPORT_SYMBOL_GPL(br_port_dev_get);
+++
+++/* Update bridge statistics for bridge packets processed by offload engines */
+++void br_dev_update_stats(struct net_device *dev,
+++			 struct rtnl_link_stats64 *nlstats)
+++{
+++	struct pcpu_sw_netstats *stats;
+++
+++	/* Is this a bridge? */
+++	if (!(dev->priv_flags & IFF_EBRIDGE))
+++		return;
+++
+++	stats = per_cpu_ptr(dev->tstats, 0);
+++
+++	u64_stats_update_begin(&stats->syncp);
+++	u64_stats_add(&stats->rx_packets, nlstats->rx_packets);
+++	u64_stats_add(&stats->rx_bytes, nlstats->rx_bytes);
+++	u64_stats_add(&stats->tx_packets, nlstats->tx_packets);
+++	u64_stats_add(&stats->tx_bytes, nlstats->tx_bytes);
+++	u64_stats_update_end(&stats->syncp);
+++}
+++EXPORT_SYMBOL_GPL(br_dev_update_stats);
+--- /dev/null	2024-12-26 00:11:56.425999992 +0800
++++ b/target/linux/generic/hack-6.6/960199-net-bridge-Added-bridge-fdb-update-notify-chain.patch	2024-12-31 22:40:52.966873771 +0800
+@@ -0,0 +1,105 @@
++From 3d811fe6ee3a874861faadb64e44650ed466a808 Mon Sep 17 00:00:00 2001
++From: Murat Sezgin <quic_msezgin@quicinc.com>
++Date: Thu, 18 May 2023 21:11:09 -0700
++Subject: [PATCH 213/500] net: bridge: Added bridge fdb update notify chain
++
++Registered modules are notified based on two events:
++1. Dst port changes for any existing bridge fdb entry
++2. Bridge fdb entry ages out/deleted
++
++Change-Id: Iaba8fba6859bcc8e638df4f2e9900c131b1a6d34
++Signed-off-by: ratheesh kannoth <rkannoth@codeaurora.org>
++Signed-off-by: Murat Sezgin <msezgin@codeaurora.org>
++
++net: bridge : delete fdb entry before callbacks
++
++Ageing timer expires and deletes corresponding fdb entry. Registered
++callbacks for br_fdb_update_notifier chains are called one by one.
++Since callback invocation is before the deletion of fdb entry,
++it may lead to race condition. Fix is to reorder it.
++
++Change-Id: Idefce6d879bfa6104cadc495aa61d164db214c97
++Signed-off-by: ratheesh kannoth <rkannoth@codeaurora.org>
++Signed-off-by: Murat Sezgin <msezgin@codeaurora.org>
++Signed-off-by: Murat Sezgin <quic_msezgin@quicinc.com>
++---
++ include/linux/if_bridge.h |  2 ++
++ net/bridge/br_fdb.c       | 28 ++++++++++++++++++++++++++--
++ 2 files changed, 28 insertions(+), 2 deletions(-)
++
++--- a/include/linux/if_bridge.h
+++++ b/include/linux/if_bridge.h
++@@ -79,6 +79,8 @@ extern void br_dev_update_stats(struct n
++ extern struct net_bridge_fdb_entry *br_fdb_has_entry(struct net_device *dev,
++ 						     const char *addr,
++ 						     __u16 vid);
+++extern void br_fdb_update_register_notify(struct notifier_block *nb);
+++extern void br_fdb_update_unregister_notify(struct notifier_block *nb);
++ 
++ #if IS_ENABLED(CONFIG_BRIDGE) && IS_ENABLED(CONFIG_BRIDGE_IGMP_SNOOPING)
++ int br_multicast_list_adjacent(struct net_device *dev,
++--- a/net/bridge/br_fdb.c
+++++ b/net/bridge/br_fdb.c
++@@ -519,6 +519,20 @@ out:
++ 	spin_unlock_bh(&br->hash_lock);
++ }
++ 
+++ATOMIC_NOTIFIER_HEAD(br_fdb_update_notifier_list);
+++
+++void br_fdb_update_register_notify(struct notifier_block *nb)
+++{
+++	atomic_notifier_chain_register(&br_fdb_update_notifier_list, nb);
+++}
+++EXPORT_SYMBOL_GPL(br_fdb_update_register_notify);
+++
+++void br_fdb_update_unregister_notify(struct notifier_block *nb)
+++{
+++	atomic_notifier_chain_unregister(&br_fdb_update_notifier_list, nb);
+++}
+++EXPORT_SYMBOL_GPL(br_fdb_update_unregister_notify);
+++
++ void br_fdb_cleanup(struct work_struct *work)
++ {
++ 	struct net_bridge *br = container_of(work, struct net_bridge,
++@@ -527,6 +541,7 @@ void br_fdb_cleanup(struct work_struct *
++ 	unsigned long delay = hold_time(br);
++ 	unsigned long work_delay = delay;
++ 	unsigned long now = jiffies;
+++	u8 mac_addr[6];
++ 
++ 	/* this part is tricky, in order to avoid blocking learning and
++ 	 * consequently forwarding, we rely on rcu to delete objects with
++@@ -553,8 +568,12 @@ void br_fdb_cleanup(struct work_struct *
++ 			work_delay = min(work_delay, this_timer - now);
++ 		} else {
++ 			spin_lock_bh(&br->hash_lock);
++-			if (!hlist_unhashed(&f->fdb_node))
++-				fdb_delete(br, f, true);
+++			if (!hlist_unhashed(&f->fdb_node)) {
+++			    ether_addr_copy(mac_addr, f->key.addr.addr);
+++			    fdb_delete(br, f, true);
+++			    atomic_notifier_call_chain(&br_fdb_update_notifier_list, 0,
+++						       (void *)mac_addr);
+++			}
++ 			spin_unlock_bh(&br->hash_lock);
++ 		}
++ 	}
++@@ -881,6 +900,7 @@ void br_fdb_update(struct net_bridge *br
++ 				br_switchdev_fdb_notify(br, fdb, RTM_DELNEIGH);
++ 				WRITE_ONCE(fdb->dst, source);
++ 				fdb_modified = true;
+++
++ 				/* Take over HW learned entry */
++ 				if (unlikely(test_bit(BR_FDB_ADDED_BY_EXT_LEARN,
++ 						      &fdb->flags)))
++@@ -891,6 +911,10 @@ void br_fdb_update(struct net_bridge *br
++ 				 */
++ 				if (unlikely(test_bit(BR_FDB_LOCKED, &fdb->flags)))
++ 					clear_bit(BR_FDB_LOCKED, &fdb->flags);
+++
+++				atomic_notifier_call_chain(
+++					&br_fdb_update_notifier_list,
+++					0, (void *)addr);
++ 			}
++ 
++ 			if (unlikely(test_bit(BR_FDB_ADDED_BY_USER, &flags)))
+--- /dev/null	2024-12-26 00:11:56.425999992 +0800
++++ b/target/linux/generic/hack-6.6/960220-bridge-Fix-the-bridge-stats-update-function.patch	2024-12-31 22:40:52.966873771 +0800
+@@ -0,0 +1,35 @@
++From 0d4365501a75d370d920a2b41c6bc006b15c01b7 Mon Sep 17 00:00:00 2001
++From: Manish Verma <quic_maniverm@quicinc.com>
++Date: Wed, 8 Jun 2022 18:47:35 +0530
++Subject: [PATCH 234/500] bridge: Fix the bridge stats update function
++
++1. For updating the stats, use the current core's stats pointer
++2. Hold the exclusive access to the sequence counter while updating
++   the bridge stats.
++
++Change-Id: I16d33677ee402dc4436741b630dfb9eb17caced0
++Signed-off-by: Manish Verma <quic_maniverm@quicinc.com>
++---
++ net/bridge/br_if.c | 4 +++-
++ 1 file changed, 3 insertions(+), 1 deletion(-)
++
++--- a/net/bridge/br_if.c
+++++ b/net/bridge/br_if.c
++@@ -861,14 +861,16 @@ void br_dev_update_stats(struct net_devi
++ 	if (!(dev->priv_flags & IFF_EBRIDGE))
++ 		return;
++ 
++-	stats = per_cpu_ptr(dev->tstats, 0);
+++	stats = this_cpu_ptr(dev->tstats);
++ 
+++	local_bh_disable();
++ 	u64_stats_update_begin(&stats->syncp);
++ 	u64_stats_add(&stats->rx_packets, nlstats->rx_packets);
++ 	u64_stats_add(&stats->rx_bytes, nlstats->rx_bytes);
++ 	u64_stats_add(&stats->tx_packets, nlstats->tx_packets);
++ 	u64_stats_add(&stats->tx_bytes, nlstats->tx_bytes);
++ 	u64_stats_update_end(&stats->syncp);
+++	local_bh_enable();
++ }
++ EXPORT_SYMBOL_GPL(br_dev_update_stats);
++ 
+--- /dev/null	2024-12-26 00:11:56.425999992 +0800
++++ b/target/linux/generic/hack-6.6/960260-net-patch-linux-kernel-to-support-shortcut-fe.patch	2024-12-31 22:40:52.966873771 +0800
+@@ -0,0 +1,77 @@
++From 7a12e1c963727e2988cc80a2cd91160d4db78ffa Mon Sep 17 00:00:00 2001
++From: Murat Sezgin <msezgin@codeaurora.org>
++Date: Wed, 11 Mar 2020 11:58:55 -0700
++Subject: [PATCH 245/500] net: patch linux kernel to support shortcut-fe
++
++1, add a new flag 'fast_forwarded' in skb structure.
++2, put a hook in '__netif_receive_skb_core' to
++   deliver packet to shortcut-fe.
++
++Change-Id: Icaa7c172a06df1c3bc89ff89814d1136772fe217
++Signed-off-by: Murat Sezgin <msezgin@codeaurora.org>
++---
++ include/linux/skbuff.h |  2 ++
++ net/core/dev.c         | 21 +++++++++++++++++++--
++ 2 files changed, 21 insertions(+), 2 deletions(-)
++
++--- a/include/linux/skbuff.h
+++++ b/include/linux/skbuff.h
++@@ -984,6 +984,7 @@ struct sk_buff {
++ #if IS_ENABLED(CONFIG_IP_SCTP)
++ 	__u8			csum_not_inet:1;
++ #endif
+++	__u8			fast_forwarded:1;
++ 	/* Flag to check if skb is allocated from recycler */
++ 	__u8			is_from_recycler:1;
++ 	/* Flag for fast recycle in fast xmit path */
++--- a/net/core/dev.c
+++++ b/net/core/dev.c
++@@ -3594,8 +3594,13 @@ static int xmit_one(struct sk_buff *skb,
++ 	unsigned int len;
++ 	int rc;
++ 
++-	if (dev_nit_active(dev))
++-		dev_queue_xmit_nit(skb, dev);
+++	/* If this skb has been fast forwarded then we don't want it to
+++	 * go to any taps (by definition we're trying to bypass them).
+++	 */
+++	if (unlikely(!skb->fast_forwarded)) {
+++		if (dev_nit_active(dev))
+++			dev_queue_xmit_nit(skb, dev);
+++	}
++ 
++ #ifdef CONFIG_ETHERNET_PACKET_MANGLE
++ 	if (dev->eth_mangle_tx && !(skb = dev->eth_mangle_tx(dev, skb)))
++@@ -5441,6 +5446,9 @@ void netdev_rx_handler_unregister(struct
++ }
++ EXPORT_SYMBOL_GPL(netdev_rx_handler_unregister);
++ 
+++int (*athrs_fast_nat_recv)(struct sk_buff *skb) __rcu __read_mostly;
+++EXPORT_SYMBOL_GPL(athrs_fast_nat_recv);
+++
++ /*
++  * Limit the use of PFMEMALLOC reserves to those protocols that implement
++  * the special handling of PFMEMALLOC skbs.
++@@ -5488,6 +5496,7 @@ static int __netif_receive_skb_core(stru
++ 	bool deliver_exact = false;
++ 	int ret = NET_RX_DROP;
++ 	__be16 type;
+++	int (*fast_recv)(struct sk_buff *skb);
++ 
++ 	net_timestamp_check(!READ_ONCE(netdev_tstamp_prequeue), skb);
++ 
++@@ -5526,6 +5535,14 @@ another_round:
++ 			goto out;
++ 	}
++ 
+++	fast_recv = rcu_dereference(athrs_fast_nat_recv);
+++	if (fast_recv) {
+++		if (fast_recv(skb)) {
+++			ret = NET_RX_SUCCESS;
+++			goto out;
+++		}
+++	}
+++
++ 	if (skb_skip_tc_classify(skb))
++ 		goto skip_classify;
++ 
+--- /dev/null	2024-12-26 00:11:56.425999992 +0800
++++ b/target/linux/generic/hack-6.6/960336-net-conntrack-events-support-multiple-registrant.patch	2024-12-31 22:40:52.966873771 +0800
+@@ -0,0 +1,339 @@
++From 0d05596ba18a44aca87082b75989bb4114f896d8 Mon Sep 17 00:00:00 2001
++From: Murat Sezgin <msezgin@codeaurora.org>
++Date: Tue, 18 Apr 2017 15:48:01 -0700
++Subject: [PATCH 353/500] net: conntrack events, support multiple registrant
++
++Change-Id: Iebfb254590fb594f5baf232f849d1b7ae45ef757
++Signed-off-by: Zhi Chen <zhichen@codeaurora.org>
++Signed-off-by: Murat Sezgin <msezgin@codeaurora.org>
++---
++ include/net/netfilter/nf_conntrack_ecache.h | 45 +++++++++++++-
++ include/net/netns/conntrack.h               |  3 +
++ net/netfilter/Kconfig                       |  8 +++
++ net/netfilter/nf_conntrack_core.c           |  3 +
++ net/netfilter/nf_conntrack_ecache.c         | 67 +++++++++++++++++++++
++ net/netfilter/nf_conntrack_netlink.c        | 25 +++++++-
++ 6 files changed, 148 insertions(+), 3 deletions(-)
++
++--- a/include/net/netfilter/nf_conntrack_ecache.h
+++++ b/include/net/netfilter/nf_conntrack_ecache.h
++@@ -65,13 +65,52 @@ struct nf_ct_event_notifier {
++ 	int (*exp_event)(unsigned int events, const struct nf_exp_event *item);
++ };
++ 
+++#ifdef CONFIG_NF_CONNTRACK_CHAIN_EVENTS
+++extern int nf_conntrack_register_notifier(struct net *net,
+++					  struct notifier_block *nb);
+++extern int nf_conntrack_unregister_notifier(struct net *net,
+++					    struct notifier_block *nb);
+++static inline int
+++nf_conntrack_eventmask_report(unsigned int eventmask,
+++			      struct nf_conn *ct,
+++			      u32 portid,
+++			      int report)
+++{
+++	struct nf_conntrack_ecache *e;
+++	struct net *net = nf_ct_net(ct);
+++
+++	e = nf_ct_ecache_find(ct);
+++	if (e == NULL)
+++		return 0;
+++
+++	if (nf_ct_is_confirmed(ct)) {
+++		struct nf_ct_event item = {
+++			.ct = ct,
+++			.portid = e->portid ? e->portid : portid,
+++			.report = report
+++		};
+++		/* This is a resent of a destroy event? If so, skip missed */
+++		unsigned long missed = e->portid ? 0 : e->missed;
+++
+++		if (!((eventmask | missed) & e->ctmask))
+++			return 0;
+++
+++		atomic_notifier_call_chain(&net->ct.nf_conntrack_chain,
+++					   eventmask | missed, &item);
+++	}
+++
+++	return 0;
+++}
+++#else
++ void nf_conntrack_register_notifier(struct net *net,
++ 				   const struct nf_ct_event_notifier *nb);
++ void nf_conntrack_unregister_notifier(struct net *net);
++ 
++-void nf_ct_deliver_cached_events(struct nf_conn *ct);
++ int nf_conntrack_eventmask_report(unsigned int eventmask, struct nf_conn *ct,
++ 				  u32 portid, int report);
+++#endif
+++
+++void nf_ct_deliver_cached_events(struct nf_conn *ct);
++ 
++ bool nf_ct_ecache_ext_add(struct nf_conn *ct, u16 ctmask, u16 expmask, gfp_t gfp);
++ #else
++@@ -98,11 +137,13 @@ static inline void
++ nf_conntrack_event_cache(enum ip_conntrack_events event, struct nf_conn *ct)
++ {
++ #ifdef CONFIG_NF_CONNTRACK_EVENTS
++-	struct net *net = nf_ct_net(ct);
++ 	struct nf_conntrack_ecache *e;
+++#ifndef CONFIG_NF_CONNTRACK_CHAIN_EVENTS
+++	struct net *net = nf_ct_net(ct);
++ 
++ 	if (!rcu_access_pointer(net->ct.nf_conntrack_event_cb))
++ 		return;
+++#endif
++ 
++ 	e = nf_ct_ecache_find(ct);
++ 	if (e == NULL)
++--- a/include/net/netns/conntrack.h
+++++ b/include/net/netns/conntrack.h
++@@ -104,6 +104,9 @@ struct netns_ct {
++ 	u8			sysctl_checksum;
++ 
++ 	struct ip_conntrack_stat __percpu *stat;
+++#ifdef CONFIG_NF_CONNTRACK_CHAIN_EVENTS
+++	struct atomic_notifier_head nf_conntrack_chain;
+++#endif
++ 	struct nf_ct_event_notifier __rcu *nf_conntrack_event_cb;
++ 	struct nf_ip_net	nf_ct_proto;
++ #if defined(CONFIG_NF_CONNTRACK_LABELS)
++--- a/net/netfilter/Kconfig
+++++ b/net/netfilter/Kconfig
++@@ -181,6 +181,14 @@ config NF_CONNTRACK_DSCPREMARK_EXT
++ 	  This option enables support for connection tracking extension
++ 	  for dscp remark.
++ 
+++config NF_CONNTRACK_CHAIN_EVENTS
+++	bool "Register multiple callbacks to ct events"
+++	depends on NF_CONNTRACK_EVENTS
+++	help
+++	  Support multiple registrations.
+++
+++	  If unsure, say `N'.
+++
++ config NF_CONNTRACK_TIMESTAMP
++ 	bool  'Connection tracking timestamping'
++ 	depends on NETFILTER_ADVANCED
++--- a/net/netfilter/nf_conntrack_core.c
+++++ b/net/netfilter/nf_conntrack_core.c
++@@ -2804,6 +2804,9 @@ int nf_conntrack_init_net(struct net *ne
++ 	nf_conntrack_ecache_pernet_init(net);
++ 	nf_conntrack_proto_pernet_init(net);
++ 
+++#ifdef CONFIG_NF_CONNTRACK_CHAIN_EVENTS
+++	ATOMIC_INIT_NOTIFIER_HEAD(&net->ct.nf_conntrack_chain);
+++#endif
++ 	return 0;
++ 
++ err_expect:
++--- a/net/netfilter/nf_conntrack_ecache.c
+++++ b/net/netfilter/nf_conntrack_ecache.c
++@@ -16,6 +16,9 @@
++ #include <linux/vmalloc.h>
++ #include <linux/stddef.h>
++ #include <linux/err.h>
+++#ifdef CONFIG_NF_CONNTRACK_CHAIN_EVENTS
+++#include <linux/notifier.h>
+++#endif
++ #include <linux/kernel.h>
++ #include <linux/netdevice.h>
++ #include <linux/slab.h>
++@@ -124,6 +127,7 @@ static void ecache_work(struct work_stru
++ 		schedule_delayed_work(&cnet->ecache.dwork, delay);
++ }
++ 
+++#ifndef CONFIG_NF_CONNTRACK_CHAIN_EVENTS
++ static int __nf_conntrack_eventmask_report(struct nf_conntrack_ecache *e,
++ 					   const u32 events,
++ 					   const u32 missed,
++@@ -198,9 +202,56 @@ int nf_conntrack_eventmask_report(unsign
++ 	return ret;
++ }
++ EXPORT_SYMBOL_GPL(nf_conntrack_eventmask_report);
+++#endif
++ 
++ /* deliver cached events and clear cache entry - must be called with locally
++  * disabled softirqs */
+++#ifdef CONFIG_NF_CONNTRACK_CHAIN_EVENTS
+++void nf_ct_deliver_cached_events(struct nf_conn *ct)
+++{
+++	unsigned long events, missed;
+++	struct nf_conntrack_ecache *e;
+++	struct nf_ct_event item;
+++	struct net *net = nf_ct_net(ct);
+++	int ret = 0;
+++
+++	e = nf_ct_ecache_find(ct);
+++	if (!e)
+++		return;
+++
+++	events = xchg(&e->cache, 0);
+++
+++	if (!nf_ct_is_confirmed(ct) || nf_ct_is_dying(ct) || !events)
+++		return;
+++
+++	/*
+++	 * We make a copy of the missed event cache without taking
+++	 * the lock, thus we may send missed events twice. However,
+++	 * this does not harm and it happens very rarely.
+++	 */
+++	missed = e->missed;
+++
+++	if (!((events | missed) & e->ctmask))
+++		return;
+++
+++	item.ct = ct;
+++	item.portid = 0;
+++	item.report = 0;
+++
+++	atomic_notifier_call_chain(&net->ct.nf_conntrack_chain,
+++				   events | missed, &item);
+++
+++	if (likely(ret >= 0 && !missed))
+++		return;
+++
+++	spin_lock_bh(&ct->lock);
+++	if (ret < 0)
+++		e->missed |= events;
+++	else
+++		e->missed &= ~missed;
+++	spin_unlock_bh(&ct->lock);
+++}
+++#else
++ void nf_ct_deliver_cached_events(struct nf_conn *ct)
++ {
++ 	struct nf_conntrack_ecache *e;
++@@ -226,6 +277,7 @@ void nf_ct_deliver_cached_events(struct
++ 	 */
++ 	__nf_conntrack_eventmask_report(e, events, e->missed, &item);
++ }
+++#endif
++ EXPORT_SYMBOL_GPL(nf_ct_deliver_cached_events);
++ 
++ void nf_ct_expect_event_report(enum ip_conntrack_expect_events event,
++@@ -258,6 +310,12 @@ out_unlock:
++ 	rcu_read_unlock();
++ }
++ 
+++#ifdef CONFIG_NF_CONNTRACK_CHAIN_EVENTS
+++int nf_conntrack_register_notifier(struct net *net, struct notifier_block *nb)
+++{
+++	return atomic_notifier_chain_register(&net->ct.nf_conntrack_chain, nb);
+++}
+++#else
++ void nf_conntrack_register_notifier(struct net *net,
++ 				    const struct nf_ct_event_notifier *new)
++ {
++@@ -270,8 +328,16 @@ void nf_conntrack_register_notifier(stru
++ 	rcu_assign_pointer(net->ct.nf_conntrack_event_cb, new);
++ 	mutex_unlock(&nf_ct_ecache_mutex);
++ }
+++#endif
++ EXPORT_SYMBOL_GPL(nf_conntrack_register_notifier);
++ 
+++#ifdef CONFIG_NF_CONNTRACK_CHAIN_EVENTS
+++int nf_conntrack_unregister_notifier(struct net *net, struct notifier_block *nb)
+++{
+++	return atomic_notifier_chain_unregister(&net->ct.nf_conntrack_chain,
+++						nb);
+++}
+++#else
++ void nf_conntrack_unregister_notifier(struct net *net)
++ {
++ 	mutex_lock(&nf_ct_ecache_mutex);
++@@ -279,6 +345,7 @@ void nf_conntrack_unregister_notifier(st
++ 	mutex_unlock(&nf_ct_ecache_mutex);
++ 	/* synchronize_rcu() is called after netns pre_exit */
++ }
+++#endif
++ EXPORT_SYMBOL_GPL(nf_conntrack_unregister_notifier);
++ 
++ void nf_conntrack_ecache_work(struct net *net, enum nf_ct_ecache_state state)
++--- a/net/netfilter/nf_conntrack_netlink.c
+++++ b/net/netfilter/nf_conntrack_netlink.c
++@@ -28,6 +28,9 @@
++ #include <linux/netlink.h>
++ #include <linux/spinlock.h>
++ #include <linux/interrupt.h>
+++#ifdef CONFIG_NF_CONNTRACK_CHAIN_EVENTS
+++#include <linux/notifier.h>
+++#endif
++ #include <linux/slab.h>
++ #include <linux/siphash.h>
++ 
++@@ -719,18 +722,26 @@ static size_t ctnetlink_nlmsg_size(const
++ 	       ;
++ }
++ 
+++#ifdef CONFIG_NF_CONNTRACK_CHAIN_EVENTS
+++static int ctnetlink_conntrack_event(struct notifier_block *this,
+++				     unsigned long events, void *ptr)
+++#else
++ static int
++ ctnetlink_conntrack_event(unsigned int events, const struct nf_ct_event *item)
+++#endif
++ {
++ 	const struct nf_conntrack_zone *zone;
++ 	struct net *net;
++ 	struct nlmsghdr *nlh;
++ 	struct nlattr *nest_parms;
++-	struct nf_conn *ct = item->ct;
++ 	struct sk_buff *skb;
++ 	unsigned int type;
++ 	unsigned int flags = 0, group;
++ 	int err;
+++#ifdef CONFIG_NF_CONNTRACK_CHAIN_EVENTS
+++	struct nf_ct_event *item = (struct nf_ct_event *)ptr;
+++#endif
+++	struct nf_conn *ct = item->ct;
++ 
++ 	if (events & (1 << IPCT_DESTROY)) {
++ 		type = IPCTNL_MSG_CT_DELETE;
++@@ -3089,6 +3100,7 @@ nla_put_failure:
++ }
++ 
++ #ifdef CONFIG_NF_CONNTRACK_EVENTS
+++#ifndef CONFIG_NF_CONNTRACK_CHAIN_EVENTS
++ static int
++ ctnetlink_expect_event(unsigned int events, const struct nf_exp_event *item)
++ {
++@@ -3138,6 +3150,7 @@ errout:
++ 	return 0;
++ }
++ #endif
+++#endif
++ static int ctnetlink_exp_done(struct netlink_callback *cb)
++ {
++ 	if (cb->args[1])
++@@ -3748,11 +3761,17 @@ static int ctnetlink_stat_exp_cpu(struct
++ }
++ 
++ #ifdef CONFIG_NF_CONNTRACK_EVENTS
+++#ifdef CONFIG_NF_CONNTRACK_CHAIN_EVENTS
+++static struct notifier_block ctnl_notifier = {
+++	.notifier_call = ctnetlink_conntrack_event,
+++};
+++#else
++ static struct nf_ct_event_notifier ctnl_notifier = {
++ 	.ct_event = ctnetlink_conntrack_event,
++ 	.exp_event = ctnetlink_expect_event,
++ };
++ #endif
+++#endif
++ 
++ static const struct nfnl_callback ctnl_cb[IPCTNL_MSG_MAX] = {
++ 	[IPCTNL_MSG_CT_NEW]	= {
++@@ -3851,8 +3870,12 @@ static int __net_init ctnetlink_net_init
++ static void ctnetlink_net_pre_exit(struct net *net)
++ {
++ #ifdef CONFIG_NF_CONNTRACK_EVENTS
+++#ifdef CONFIG_NF_CONNTRACK_CHAIN_EVENTS
+++	nf_conntrack_unregister_notifier(net, &ctnl_notifier);
+++#else
++ 	nf_conntrack_unregister_notifier(net);
++ #endif
+++#endif
++ }
++ 
++ static struct pernet_operations ctnetlink_net_ops = {
+diff --git a/package/Makefile b/package/Makefile
+index ca43eb7..6429637 100644
+--- a/package/Makefile
++++ b/package/Makefile
+@@ -118,6 +118,8 @@ endif
+ 	$(CP) $(TARGET_DIR) $(TARGET_DIR_ORIG)
+ 
+ 	$(call prepare_rootfs,$(TARGET_DIR),$(TOPDIR)/files)
++		find $(TARGET_DIR) -type f -name '*.orig' -delete
++		rm -f $(TARGET_DIR)/etc/rc.d/*shortcut-fe
+ 
+ $(curdir)/index: FORCE
+ 	@echo Generating package index...

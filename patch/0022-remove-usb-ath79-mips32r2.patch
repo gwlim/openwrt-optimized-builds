@@ -1,0 +1,13 @@
+diff --git a/target/linux/ath79/Makefile b/target/linux/ath79/Makefile
+index b61d10c..6ecd6c9 100644
+--- a/target/linux/ath79/Makefile
++++ b/target/linux/ath79/Makefile
+@@ -6,7 +6,7 @@ BOARDNAME:=Atheros ATH79
+ CPU_TYPE:=24kc
+ SUBTARGETS:=generic mikrotik nand tiny
+ 
+-FEATURES:=ramdisk squashfs usbgadget
++FEATURES:=ramdisk squashfs
+ 
+ KERNEL_PATCHVER:=6.6
+ 

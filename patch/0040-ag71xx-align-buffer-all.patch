@@ -1,0 +1,43 @@
+--- /dev/null	2025-01-10 21:27:25.721992006 +0800
++++ b/target/linux/ath79/patches-6.6/914-ag71xx-align-buffer.patch	2025-01-15 22:57:08.926954512 +0800
+@@ -0,0 +1,40 @@
++--- a/drivers/net/ethernet/atheros/ag71xx.c	2025-01-15 21:02:54.395181321 +0800
+++++ b/drivers/net/ethernet/atheros/ag71xx.c	2025-01-15 21:42:35.599229935 +0800
++@@ -296,7 +296,7 @@ struct ag71xx_desc {
++ 	u32 ctrl;
++ 	u32 next;
++ 	u32 pad;
++-} __aligned(4);
+++} __attribute__((packed, aligned(2)));
++ 
++ #define AG71XX_DESC_SIZE	roundup(sizeof(struct ag71xx_desc), \
++ 					L1_CACHE_BYTES)
++@@ -312,7 +312,7 @@ struct ag71xx_buf {
++ 			void *rx_buf;
++ 		} rx;
++ 	};
++-};
+++} __attribute__((packed, aligned(2)));
++ 
++ struct ag71xx_ring {
++ 	/* "Hot" fields in the data path. */
++--- a/drivers/net/ethernet/atheros/ag71xx/ag71xx.h	2025-01-15 21:02:54.395181321 +0800
+++++ b/drivers/net/ethernet/atheros/ag71xx/ag71xx.h	2025-01-15 21:42:10.673260215 +0800
++@@ -90,7 +90,7 @@ struct ag71xx_desc {
++ #define DESC_PKTLEN_M	0xfff
++ 	u32	next;
++ 	u32	pad;
++-} __attribute__((aligned(4)));
+++} __attribute__((packed, aligned(2)));
++ 
++ #define AG71XX_DESC_SIZE	roundup(sizeof(struct ag71xx_desc), \
++ 					L1_CACHE_BYTES)
++@@ -104,7 +104,7 @@ struct ag71xx_buf {
++ 		dma_addr_t	dma_addr;
++ 		unsigned int		len;
++ 	};
++-};
+++} __attribute__((packed, aligned(2)));
++ 
++ struct ag71xx_ring {
++ 	struct ag71xx_buf	*buf;

@@ -1,0 +1,191 @@
+diff --git a/config/Config-kernel.in b/config/Config-kernel.in
+index 4bd2cde..554ec9d 100644
+--- a/config/Config-kernel.in
++++ b/config/Config-kernel.in
+@@ -26,11 +26,11 @@ config KERNEL_PRINTK
+ 
+ config KERNEL_SWAP
+ 	bool "Support for paging of anonymous memory (swap)"
+-	default y if !SMALL_FLASH
++	default n
+ 
+ config KERNEL_PROC_STRIPPED
+ 	bool "Strip non-essential /proc functionality to reduce code size"
+-	default y if SMALL_FLASH
++	default y
+ 
+ config KERNEL_DEBUG_FS
+ 	bool "Compile the kernel with debug filesystem enabled"
+@@ -335,7 +335,7 @@ endif
+ 
+ config KERNEL_KALLSYMS
+ 	bool "Compile the kernel with symbol table information"
+-	default y if !SMALL_FLASH
++	default n
+ 	help
+ 	  This will give you more information in stack traces from kernel oopses.
+ 
+@@ -419,7 +419,7 @@ config KERNEL_DEBUG_KERNEL
+ 
+ config KERNEL_DEBUG_INFO
+ 	bool "Compile the kernel with debug information"
+-	default y if !SMALL_FLASH
++	default n
+ 	select KERNEL_DEBUG_KERNEL
+ 	help
+ 	  This will compile your kernel and modules with debug information.
+@@ -557,20 +557,20 @@ config KERNEL_BPF_KPROBE_OVERRIDE
+ 
+ config KERNEL_AIO
+ 	bool "Compile the kernel with asynchronous IO support"
+-	default y if !SMALL_FLASH
++	default y
+ 
+ config KERNEL_IO_URING
+ 	bool "Compile the kernel with io_uring support"
+ 	depends on !SMALL_FLASH
+-	default y if (x86_64 || aarch64)
++	default y if (x86_64 || aarch64)
+ 
+ config KERNEL_FHANDLE
+ 	bool "Compile the kernel with support for fhandle syscalls"
+-	default y if !SMALL_FLASH
++	default y if !SMALL_FLASH
+ 
+ config KERNEL_FANOTIFY
+ 	bool "Compile the kernel with modern file notification support"
+-	default y if !SMALL_FLASH
++	default y if !SMALL_FLASH
+ 
+ config KERNEL_BLK_DEV_BSG
+ 	bool "Compile the kernel with SCSI generic v4 support for any block device"
+@@ -616,7 +616,7 @@ config KERNEL_COREDUMP
+ config KERNEL_ELF_CORE
+ 	bool "Enable process core dump support"
+ 	select KERNEL_COREDUMP
+-	default y if !SMALL_FLASH
++	default n
+ 
+ config KERNEL_PROVE_LOCKING
+ 	bool "Enable kernel lock checking"
+@@ -764,7 +764,7 @@ endif
+ 
+ config KERNEL_KEYS
+ 	bool "Enable kernel access key retention support"
+-	default !SMALL_FLASH
++	default !SMALL_FLASH
+ 
+ config KERNEL_PERSISTENT_KEYRINGS
+ 	bool "Enable kernel persistent keyrings"
+@@ -784,7 +784,7 @@ config KERNEL_BIG_KEYS
+ 
+ config KERNEL_CGROUPS
+ 	bool "Enable kernel cgroups"
+-	default y if !SMALL_FLASH
++	default y if !SMALL_FLASH
+ 
+ if KERNEL_CGROUPS
+ 
+@@ -1035,7 +1035,7 @@ endif
+ 
+ config KERNEL_NAMESPACES
+ 	bool "Enable kernel namespaces"
+-	default y if !SMALL_FLASH
++	default y if !SMALL_FLASH
+ 
+ if KERNEL_NAMESPACES
+ 
+@@ -1079,7 +1079,7 @@ endif
+ 
+ config KERNEL_DEVPTS_MULTIPLE_INSTANCES
+ 	bool "Support multiple instances of devpts"
+-	default y if !SMALL_FLASH
++	default y if !SMALL_FLASH
+ 	help
+ 	  Enable support for multiple instances of devpts filesystem.
+ 	  If you want to have isolated PTY namespaces (eg: in containers),
+@@ -1089,7 +1089,7 @@ config KERNEL_DEVPTS_MULTIPLE_INSTANCES
+ 
+ config KERNEL_POSIX_MQUEUE
+ 	bool "POSIX Message Queues"
+-	default y if !SMALL_FLASH
++	default y if !SMALL_FLASH
+ 	help
+ 	  POSIX variant of message queues is a part of IPC. In POSIX message
+ 	  queues every message has a priority which decides about succession
+@@ -1104,13 +1104,13 @@ config KERNEL_POSIX_MQUEUE
+ 
+ config KERNEL_SECCOMP_FILTER
+ 	bool
+-	default y if !SMALL_FLASH
++	default y if !SMALL_FLASH
+ 
+ config KERNEL_SECCOMP
+ 	bool "Enable seccomp support"
+ 		depends on !(TARGET_uml)
+ 		select KERNEL_SECCOMP_FILTER
+-		default y if !SMALL_FLASH
++		default y if !SMALL_FLASH
+ 		help
+ 		  Build kernel with support for seccomp.
+ 
+@@ -1172,7 +1172,7 @@ if KERNEL_IPV6
+ 
+ 	config KERNEL_IPV6_SEG6_LWTUNNEL
+ 		bool "Enable support for lightweight tunnels"
+-		default y if !SMALL_FLASH
++		default y if !SMALL_FLASH
+ 		help
+ 		  Using lwtunnel (needed for IPv6 segment routing) requires ip-full package.
+ 
+@@ -1247,7 +1247,7 @@ config KERNEL_BTRFS_FS
+ menu "Filesystem ACL and attr support options"
+ 	config USE_FS_ACL_ATTR
+ 		bool "Use filesystem ACL and attr support by default"
+-		default y if !SMALL_FLASH
++		default y if !SMALL_FLASH
+ 		help
+ 		  Make using ACLs (e.g. POSIX ACL, NFSv4 ACL) the default
+ 		  for kernel and packages, except old NFS.
+@@ -1345,7 +1345,7 @@ config KERNEL_DEVKMEM
+ 
+ config KERNEL_SQUASHFS_FRAGMENT_CACHE_SIZE
+ 	int "Number of squashfs fragments cached"
+-	default 2 if (SMALL_FLASH && !LOW_MEMORY_FOOTPRINT)
++	default 2 if (SMALL_FLASH && !LOW_MEMORY_FOOTPRINT)
+ 	default 3
+ 
+ config KERNEL_SQUASHFS_XATTR
+@@ -1356,7 +1356,7 @@ config KERNEL_SQUASHFS_XATTR
+ #
+ choice
+ 	prompt "Compiler optimization level"
+-	default KERNEL_CC_OPTIMIZE_FOR_SIZE if SMALL_FLASH
++	default KERNEL_CC_OPTIMIZE_FOR_PERFORMANCE
+ 
+ config KERNEL_CC_OPTIMIZE_FOR_PERFORMANCE
+ 	bool "Optimize for performance"
+@@ -1419,19 +1419,19 @@ config KERNEL_LSM
+ 
+ config KERNEL_EXT4_FS_SECURITY
+ 	bool "Ext4 Security Labels"
+-	default y if !SMALL_FLASH
++	default y if !SMALL_FLASH
+ 
+ config KERNEL_F2FS_FS_SECURITY
+ 	bool "F2FS Security Labels"
+-	default y if !SMALL_FLASH
++	default y if !SMALL_FLASH
+ 
+ config KERNEL_UBIFS_FS_SECURITY
+ 	bool "UBIFS Security Labels"
+-	default y if !SMALL_FLASH
++	default y if !SMALL_FLASH
+ 
+ config KERNEL_JFFS2_FS_SECURITY
+ 	bool "JFFS2 Security Labels"
+-	default y if !SMALL_FLASH
++	default y if !SMALL_FLASH
+ 
+ config KERNEL_WERROR
+ 	bool "Compile the kernel with warnings as errors"

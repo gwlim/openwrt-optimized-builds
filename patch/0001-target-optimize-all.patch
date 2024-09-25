@@ -1,0 +1,88 @@
+diff --git a/include/target.mk b/include/target.mk
+index d13902a..265494e 100644
+@@ -20,19 +20,22 @@ DEVICE_TYPE?=router
+ ##
+ DEFAULT_PACKAGES:=\
+ 	base-files \
+-	ca-bundle \
++	ca-bundle kmod-fast-classifier \
+ 	dropbear \
+ 	fstools \
+ 	libc \
+ 	libgcc \
+-	libustream-mbedtls \
++	libustream-openssl \
+ 	logd \
++	luci \
++	luci-mod-admin-full \
++	luci-theme-bootstrap \
+ 	mtd \
+ 	netifd \
+ 	uci \
+ 	uclient-fetch \
+-	urandom-seed \
+-	urngd
++	urandom-seed \
++	urngd
+ 
+ ##@
+ # @brief Default packages for @DEVICE_TYPE basic.
+@@ -221,7 +224,7 @@ LINUX_RECONF_DIFF = $(SCRIPT_DIR)/kconfig.pl - '>' $(call __linux_confcmd,$(filt
+ ifeq ($(DUMP),1)
+   BuildTarget=$(BuildTargets/DumpCurrent)
+ 
+-  CPU_CFLAGS = -Os -pipe
++  CPU_CFLAGS = -O2 -pipe
+   ifneq ($(findstring mips,$(ARCH)),)
+     ifneq ($(findstring mips64,$(ARCH)),)
+       CPU_TYPE ?= mips64
+diff --git a/config/Config-devel.in b/config/Config-devel.in
+index cbac91c..7506bf7 100644
+--- a/config/Config-devel.in
++++ b/config/Config-devel.in
+@@ -153,7 +153,7 @@ menuconfig DEVEL
+ 
+ 	config EXTRA_OPTIMIZATION
+ 		string "Additional compiler options" if DEVEL
+-		default "-fno-caller-saves -fno-plt" if !CONFIG_EXTERNAL_TOOLCHAIN && !arc
++		default "-fno-caller-saves -fno-plt -fomit-frame-pointer" if !CONFIG_EXTERNAL_TOOLCHAIN && !arc
+ 		default "-fno-caller-saves"
+ 		help
+ 		  Extra target-independent optimizations to use when building for the target.
+diff --git a/config/Config-build.in b/config/Config-build.in
+index 41c1dac..311d5ba 100644
+--- a/config/Config-build.in
++++ b/config/Config-build.in
+@@ -41,11 +41,13 @@ menu "Global build settings"
+ 
+ 	config ALL_KMODS
+ 		bool "Select all kernel module packages by default"
++		default y
+ 
+ 	config ALL
+ 		bool "Select all userspace packages by default"
+ 		select ALL_KMODS
+ 		select ALL_NONSHARED
++		default n
+ 
+ 	config BUILDBOT
+ 		bool "Set build defaults for automatic builds (e.g. via buildbot)"
+@@ -58,15 +60,15 @@ menu "Global build settings"
+ 
+ 	config SIGNED_PACKAGES
+ 		bool "Cryptographically signed package lists"
+-		default y
++		default y
+ 
+ 	config SIGNATURE_CHECK
+ 		bool "Enable signature checking in opkg"
+-		default SIGNED_PACKAGES
++		default y
+ 
+ 	config DOWNLOAD_CHECK_CERTIFICATE
+ 		bool "Enable TLS certificate verification during package download"
+-		default y
++		default y
+ 
+ 	config USE_APK
+ 		imply PACKAGE_apk-mbedtls

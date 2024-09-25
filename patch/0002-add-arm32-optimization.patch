@@ -1,0 +1,14 @@
+--- a/include/target.mk	2025-01-29 00:30:10.416772951 +0800
++++ b/include/target.mk	2025-01-29 00:31:48.884693272 +0800
+@@ -265,6 +265,11 @@ ifeq ($(DUMP),1)
+     CPU_TYPE = sparc
+     CPU_CFLAGS_ultrasparc = -mcpu=ultrasparc
+   endif
++  ifeq ($(ARCH),arm)
++    CPU_CFLAGS_cortex-a7 = -mcpu=cortex-a7
++    CPU_CFLAGS_cortex-a8 = -mcpu=cortex-a8
++    CPU_CFLAGS_cortex-a9 = -mcpu=cortex-a9
++  endif
+   ifeq ($(ARCH),aarch64)
+     CPU_TYPE ?= generic
+     CPU_CFLAGS_generic = -mcpu=generic

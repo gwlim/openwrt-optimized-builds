@@ -1,0 +1,17 @@
+diff --git a/toolchain/musl/patches/905-musl-cflags.patch b/toolchain/musl/patches/905-musl-cflags.patch
+new file mode 100644
+index 0000000..ff429b4
+--- /dev/null
++++ ./toolchain/musl/patches/905-musl-cflags.patch
+@@ -0,0 +1,11 @@
++--- a/Makefile	2024-10-06 02:09:51.314216431 +0800
+++++ b/Makefile	2024-10-06 13:11:27.480229797 +0800
++@@ -118,7 +118,7 @@ obj/crt/Scrt1.o obj/crt/rcrt1.o: CFLAGS_
++ obj/libssp_nonshared/__stack_chk_fail_local.o: CFLAGS_ALL += $(CFLAGS_NOSSP)
++ 
++ OPTIMIZE_SRCS = $(wildcard $(OPTIMIZE_GLOBS:%=$(srcdir)/src/%))
++-$(OPTIMIZE_SRCS:$(srcdir)/%.c=obj/%.o) $(OPTIMIZE_SRCS:$(srcdir)/%.c=obj/%.lo): CFLAGS += -O3
+++$(OPTIMIZE_SRCS:$(srcdir)/%.c=obj/%.o) $(OPTIMIZE_SRCS:$(srcdir)/%.c=obj/%.lo): CFLAGS += -O2 OPENWRT_CPU_CFLAG_ARCH_OPTIMIZATION OPENWRT_CPU_CFLAG_OPTIMIZATION
++ 
++ MEMOPS_OBJS = $(filter %/memcpy.o %/memmove.o %/memcmp.o %/memset.o, $(LIBC_OBJS))
++ $(MEMOPS_OBJS) $(MEMOPS_OBJS:%.o=%.lo): CFLAGS_ALL += $(CFLAGS_MEMOPS)
