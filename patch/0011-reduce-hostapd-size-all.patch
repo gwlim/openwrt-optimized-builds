@@ -1,0 +1,197 @@
+diff --git a/package/network/services/hostapd/files/hostapd-basic.config b/package/network/services/hostapd/files/hostapd-basic.config
+index 3d19d8f..b2e7494 100644
+--- a/package/network/services/hostapd/files/hostapd-basic.config
++++ b/package/network/services/hostapd/files/hostapd-basic.config
+@@ -173,14 +173,14 @@ CONFIG_IEEE80211AC=y
+ # Remove debugging code that is printing out debug messages to stdout.
+ # This can be used to reduce the size of the hostapd considerably if debugging
+ # code is not needed.
+-#CONFIG_NO_STDOUT_DEBUG=y
++CONFIG_NO_STDOUT_DEBUG=y
+ 
+ # Add support for writing debug log to a file: -f /tmp/hostapd.log
+ # Disabled by default.
+ #CONFIG_DEBUG_FILE=y
+ 
+ # Send debug messages to syslog instead of stdout
+-CONFIG_DEBUG_SYSLOG=y
++#CONFIG_DEBUG_SYSLOG=y
+ 
+ # Add support for sending all debug messages (regardless of debug verbosity)
+ # to the Linux kernel tracing facility. This helps debug the entire stack by
+diff --git a/package/network/services/hostapd/files/hostapd-full.config b/package/network/services/hostapd/files/hostapd-full.config
+index 9076ebc..78598df 100644
+--- a/package/network/services/hostapd/files/hostapd-full.config
++++ b/package/network/services/hostapd/files/hostapd-full.config
+@@ -173,14 +173,14 @@ CONFIG_IEEE80211AC=y
+ # Remove debugging code that is printing out debug messages to stdout.
+ # This can be used to reduce the size of the hostapd considerably if debugging
+ # code is not needed.
+-#CONFIG_NO_STDOUT_DEBUG=y
++CONFIG_NO_STDOUT_DEBUG=y
+ 
+ # Add support for writing debug log to a file: -f /tmp/hostapd.log
+ # Disabled by default.
+ #CONFIG_DEBUG_FILE=y
+ 
+ # Send debug messages to syslog instead of stdout
+-CONFIG_DEBUG_SYSLOG=y
++#CONFIG_DEBUG_SYSLOG=y
+ 
+ # Add support for sending all debug messages (regardless of debug verbosity)
+ # to the Linux kernel tracing facility. This helps debug the entire stack by
+diff --git a/package/network/services/hostapd/files/hostapd-mini.config b/package/network/services/hostapd/files/hostapd-mini.config
+index f2ed071..79b5a31 100644
+--- a/package/network/services/hostapd/files/hostapd-mini.config
++++ b/package/network/services/hostapd/files/hostapd-mini.config
+@@ -173,14 +173,14 @@ CONFIG_IEEE80211AC=y
+ # Remove debugging code that is printing out debug messages to stdout.
+ # This can be used to reduce the size of the hostapd considerably if debugging
+ # code is not needed.
+-#CONFIG_NO_STDOUT_DEBUG=y
++CONFIG_NO_STDOUT_DEBUG=y
+ 
+ # Add support for writing debug log to a file: -f /tmp/hostapd.log
+ # Disabled by default.
+ #CONFIG_DEBUG_FILE=y
+ 
+ # Send debug messages to syslog instead of stdout
+-CONFIG_DEBUG_SYSLOG=y
++#CONFIG_DEBUG_SYSLOG=y
+ 
+ # Add support for sending all debug messages (regardless of debug verbosity)
+ # to the Linux kernel tracing facility. This helps debug the entire stack by
+diff --git a/package/network/services/hostapd/files/wpa_supplicant-basic.config b/package/network/services/hostapd/files/wpa_supplicant-basic.config
+index 944b4d9..0a44b1f 100644
+--- a/package/network/services/hostapd/files/wpa_supplicant-basic.config
++++ b/package/network/services/hostapd/files/wpa_supplicant-basic.config
+@@ -232,7 +232,7 @@ CONFIG_CTRL_IFACE=y
+ # This can be used to reduce the size of the wpa_supplicant considerably
+ # if debugging code is not needed. The size reduction can be around 35%
+ # (e.g., 90 kB).
+-#CONFIG_NO_STDOUT_DEBUG=y
++CONFIG_NO_STDOUT_DEBUG=y
+ 
+ # Remove WPA support, e.g., for wired-only IEEE 802.1X supplicant, to save
+ # 35-50 kB in code size.
+@@ -400,7 +400,7 @@ CONFIG_IEEE80211R=y
+ #CONFIG_DEBUG_FILE=y
+ 
+ # Send debug messages to syslog instead of stdout
+-CONFIG_DEBUG_SYSLOG=y
++#CONFIG_DEBUG_SYSLOG=y
+ # Set syslog facility for debug messages
+ CONFIG_DEBUG_SYSLOG_FACILITY=LOG_DAEMON
+ 
+diff --git a/package/network/services/hostapd/files/wpa_supplicant-full.config b/package/network/services/hostapd/files/wpa_supplicant-full.config
+index b39dabc..63531db 100644
+--- a/package/network/services/hostapd/files/wpa_supplicant-full.config
++++ b/package/network/services/hostapd/files/wpa_supplicant-full.config
+@@ -232,7 +232,7 @@ CONFIG_CTRL_IFACE=y
+ # This can be used to reduce the size of the wpa_supplicant considerably
+ # if debugging code is not needed. The size reduction can be around 35%
+ # (e.g., 90 kB).
+-#CONFIG_NO_STDOUT_DEBUG=y
++CONFIG_NO_STDOUT_DEBUG=y
+ 
+ # Remove WPA support, e.g., for wired-only IEEE 802.1X supplicant, to save
+ # 35-50 kB in code size.
+@@ -400,7 +400,7 @@ CONFIG_IEEE80211R=y
+ #CONFIG_DEBUG_FILE=y
+ 
+ # Send debug messages to syslog instead of stdout
+-CONFIG_DEBUG_SYSLOG=y
++#CONFIG_DEBUG_SYSLOG=y
+ # Set syslog facility for debug messages
+ CONFIG_DEBUG_SYSLOG_FACILITY=LOG_DAEMON
+ 
+diff --git a/package/network/services/hostapd/files/wpa_supplicant-mini.config b/package/network/services/hostapd/files/wpa_supplicant-mini.config
+index 2a3f8fb..63d5af5 100644
+--- a/package/network/services/hostapd/files/wpa_supplicant-mini.config
++++ b/package/network/services/hostapd/files/wpa_supplicant-mini.config
+@@ -232,7 +232,7 @@ CONFIG_CTRL_IFACE=y
+ # This can be used to reduce the size of the wpa_supplicant considerably
+ # if debugging code is not needed. The size reduction can be around 35%
+ # (e.g., 90 kB).
+-#CONFIG_NO_STDOUT_DEBUG=y
++CONFIG_NO_STDOUT_DEBUG=y
+ 
+ # Remove WPA support, e.g., for wired-only IEEE 802.1X supplicant, to save
+ # 35-50 kB in code size.
+@@ -400,7 +400,7 @@ CONFIG_TLS=internal
+ #CONFIG_DEBUG_FILE=y
+ 
+ # Send debug messages to syslog instead of stdout
+-CONFIG_DEBUG_SYSLOG=y
++#CONFIG_DEBUG_SYSLOG=y
+ # Set syslog facility for debug messages
+ CONFIG_DEBUG_SYSLOG_FACILITY=LOG_DAEMON
+ 
+diff --git a/package/network/services/hostapd/files/wpa_supplicant-p2p.config b/package/network/services/hostapd/files/wpa_supplicant-p2p.config
+index 7f51406..dce309c 100644
+--- a/package/network/services/hostapd/files/wpa_supplicant-p2p.config
++++ b/package/network/services/hostapd/files/wpa_supplicant-p2p.config
+@@ -232,7 +232,7 @@ CONFIG_CTRL_IFACE=y
+ # This can be used to reduce the size of the wpa_supplicant considerably
+ # if debugging code is not needed. The size reduction can be around 35%
+ # (e.g., 90 kB).
+-#CONFIG_NO_STDOUT_DEBUG=y
++CONFIG_NO_STDOUT_DEBUG=y
+ 
+ # Remove WPA support, e.g., for wired-only IEEE 802.1X supplicant, to save
+ # 35-50 kB in code size.
+@@ -400,7 +400,7 @@ CONFIG_INTERNAL_LIBTOMMATH_FAST=y
+ #CONFIG_DEBUG_FILE=y
+ 
+ # Send debug messages to syslog instead of stdout
+-CONFIG_DEBUG_SYSLOG=y
++#CONFIG_DEBUG_SYSLOG=y
+ # Set syslog facility for debug messages
+ CONFIG_DEBUG_SYSLOG_FACILITY=LOG_DAEMON
+ 
+--- a/dev/null	2024-09-19 21:47:06.387999906 +0800
++++ b/package/network/services/hostapd/patches/781-reduce-hostapd.patch	2024-09-26 18:25:39.100261553 +0800
+@@ -0,0 +1,43 @@
++--- a/hostapd/main.c	2024-09-26 18:08:29.898292150 +0800
+++++ b/hostapd/main.c	2024-09-26 18:18:32.209745722 +0800
++@@ -889,11 +889,11 @@ int main(int argc, char *argv[])
++ 			bss_config = tmp_bss;
++ 			bss_config[num_bss_configs++] = optarg;
++ 			break;
++-#ifdef CONFIG_DEBUG_SYSLOG
++ 		case 's':
+++#ifdef CONFIG_DEBUG_SYSLOG
++ 			wpa_debug_syslog = 1;
++-			break;
++ #endif /* CONFIG_DEBUG_SYSLOG */
+++			break;
++ 		case 'S':
++ 			start_ifaces_in_sync = 1;
++ 			break;
++--- a/wpa_supplicant/main.c	2024-09-26 18:08:29.857292174 +0800
+++++ b/wpa_supplicant/main.c	2024-09-26 18:18:33.821743894 +0800
++@@ -287,11 +287,11 @@ int main(int argc, char *argv[])
++ 		case 'q':
++ 			params.wpa_debug_level++;
++ 			break;
++-#ifdef CONFIG_DEBUG_SYSLOG
++ 		case 's':
+++#ifdef CONFIG_DEBUG_SYSLOG
++ 			params.wpa_debug_syslog++;
++-			break;
++ #endif /* CONFIG_DEBUG_SYSLOG */
+++			break;
++ #ifdef CONFIG_DEBUG_LINUX_TRACING
++ 		case 'T':
++ 			params.wpa_debug_tracing++;
++--- a/hostapd/ctrl_iface.c	2024-09-26 18:20:25.932613892 +0800
+++++ b/hostapd/ctrl_iface.c	2024-09-26 18:24:33.164446660 +0800
++@@ -4048,8 +4048,6 @@ static int hostapd_ctrl_iface_receive_pr
++ 	} else if (os_strncmp(buf, "RELOG", 5) == 0) {
++ 		if (wpa_debug_reopen_file() < 0)
++ 			reply_len = -1;
++-	} else if (os_strcmp(buf, "CLOSE_LOG") == 0) {
++-		wpa_debug_stop_log();
++ 	} else if (os_strncmp(buf, "NOTE ", 5) == 0) {
++ 		wpa_printf(MSG_INFO, "NOTE: %s", buf + 5);
++ 	} else if (os_strcmp(buf, "STATUS") == 0) {
